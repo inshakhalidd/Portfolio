@@ -1,14 +1,11 @@
 import { useState } from 'react';
 import { CATEGORY_LABELS } from '../lib/taskTemplates.js';
+import { analyzeDesign } from '../lib/designAnalysis.js';
 
-function fileToBase64(file) {
+function fileToDataUrl(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => {
-      const dataUrl = reader.result;
-      const base64 = dataUrl.split(',')[1];
-      resolve({ dataUrl, base64 });
-    };
+    reader.onload = () => resolve(reader.result);
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
@@ -73,7 +70,6 @@ export default function UploadTab({ tasks, onAddUpload }) {
   const [taskId, setTaskId] = useState(tasks[0]?.id ?? '');
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
-  const [context, setContext] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [result, setResult] = useState(null);
@@ -82,12 +78,7 @@ export default function UploadTab({ tasks, onAddUpload }) {
     setFile(f);
     setResult(null);
     setError(null);
-    if (f) {
-      const { dataUrl } = await fileToBase64(f);
-      setPreview(dataUrl);
-    } else {
-      setPreview(null);
-    }
+    setPreview(f ? await fileToDataUrl(f) : null);
   }
 
   async function submit(e) {
@@ -97,33 +88,20 @@ export default function UploadTab({ tasks, onAddUpload }) {
     setError(null);
     setResult(null);
     try {
-      const { dataUrl, base64 } = await fileToBase64(file);
+      const dataUrl = await fileToDataUrl(file);
       const task = tasks.find((t) => t.id === taskId);
+      const critique = await analyzeDesign(file, task);
 
-      const res = await fetch('/api/rate-design', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          imageBase64: base64,
-          mediaType: file.type,
-          taskTitle: task?.title,
-          category: task?.category,
-          context,
-        }),
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || 'Rating failed');
-
-      const uploadId = onAddUpload({
+      onAddUpload({
         taskId: taskId || null,
         dataUrl,
         mediaType: file.type,
         filename: file.name,
         tags: task?.tags ?? [],
         category: task?.category ?? 'general',
-        critique: json.critique,
+        critique,
       });
-      setResult(json.critique);
+      setResult(critique);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -157,17 +135,8 @@ export default function UploadTab({ tasks, onAddUpload }) {
           </div>
         )}
 
-        <label className="label">Context for the critique (optional)</label>
-        <textarea
-          className="textarea"
-          rows={2}
-          placeholder="Anything the critic should know — brief, audience, constraints..."
-          value={context}
-          onChange={(e) => setContext(e.target.value)}
-        />
-
         <button className="btn btn-primary" type="submit" disabled={!file || loading}>
-          {loading ? 'Rating...' : 'Rate this design'}
+          {loading ? 'Analyzing...' : 'Rate this design'}
         </button>
         {error && <div className="hint-warning">{error}</div>}
       </form>
@@ -176,7 +145,7 @@ export default function UploadTab({ tasks, onAddUpload }) {
         {result ? (
           <CritiqueCard critique={result} />
         ) : (
-          <div className="empty-state">Upload a design to get structured feedback.</div>
+          <div className="empty-state">Upload a design to get free, local structured feedback.</div>
         )}
       </div>
     </div>
