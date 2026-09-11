@@ -1,4 +1,11 @@
 const PATHS = {
+  home: (
+    <>
+      <path d="m4 11 8-7 8 7" />
+      <path d="M6 10v9a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-9" />
+      <path d="M10 20v-6h4v6" />
+    </>
+  ),
   tasks: (
     <>
       <path d="M9 6h11" />

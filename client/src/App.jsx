@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { loadState, saveState } from './lib/storage.js';
 import { detectCategory, generateSubtasks } from './lib/taskTemplates.js';
 import Sidebar from './components/Sidebar.jsx';
+import Home from './components/Home.jsx';
 import TopBar from './components/TopBar.jsx';
 import Modal from './components/Modal.jsx';
 import TaskInput from './components/TaskInput.jsx';
@@ -23,7 +24,7 @@ export default function App() {
   const persisted = loadState();
   const [tasks, setTasks] = useState(persisted?.tasks ?? []);
   const [uploads, setUploads] = useState(persisted?.uploads ?? []);
-  const [tab, setTab] = useState('Tasks');
+  const [tab, setTab] = useState('Home');
   const [selectedTaskId, setSelectedTaskId] = useState(persisted?.tasks?.[0]?.id ?? null);
   const [taskSearch, setTaskSearch] = useState('');
   const [addTaskOpen, setAddTaskOpen] = useState(false);
@@ -95,6 +96,18 @@ export default function App() {
         />
 
         <main className="main">
+          {tab === 'Home' && (
+            <Home
+              tasks={tasks}
+              uploads={uploads}
+              onOpenTask={(id) => {
+                setSelectedTaskId(id);
+                setTab('Tasks');
+              }}
+              onViewGallery={() => setTab('Gallery')}
+            />
+          )}
+
           {tab === 'Tasks' && (
             <>
               <h1 className="page-title">Tasks</h1>
