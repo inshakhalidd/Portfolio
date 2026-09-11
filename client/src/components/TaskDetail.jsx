@@ -94,6 +94,8 @@ export default function TaskDetail({ task, onUpdate }) {
               onRename={(title) => renameSubtask(subtask.id, title)}
               onDelete={() => deleteSubtask(subtask.id)}
               onMove={(dir) => moveSubtask(subtask.id, dir)}
+              taskTitle={task.title}
+              taskCategory={task.category}
               canMoveUp={idx > 0}
               canMoveDown={idx < task.subtasks.length - 1}
             />

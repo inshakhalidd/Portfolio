@@ -110,7 +110,9 @@ export default function UploadTab({ tasks, onAddUpload }) {
   }
 
   return (
-    <div className="upload-tab">
+    <div className="upload-tab-page">
+      <h1 className="page-title">Upload</h1>
+      <div className="upload-tab">
       <form className="upload-form" onSubmit={submit}>
         <label className="label">Task</label>
         <select className="select" value={taskId} onChange={(e) => setTaskId(e.target.value)}>
@@ -147,6 +149,7 @@ export default function UploadTab({ tasks, onAddUpload }) {
         ) : (
           <div className="empty-state">Upload a design to get free, local structured feedback.</div>
         )}
+      </div>
       </div>
     </div>
   );

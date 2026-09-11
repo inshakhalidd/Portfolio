@@ -22,7 +22,7 @@ export default function TaskInput({ onCreate }) {
 
   return (
     <form className="task-input" onSubmit={submit}>
-      <label className="label">New task</label>
+      <label className="label">Task</label>
       <input
         className="input"
         placeholder='e.g. "make portfolio" or "design Instagram posts for GlowUp"'

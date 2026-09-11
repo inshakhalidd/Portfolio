@@ -1,14 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import { loadState, saveState } from './lib/storage.js';
 import { detectCategory, generateSubtasks } from './lib/taskTemplates.js';
+import Sidebar from './components/Sidebar.jsx';
+import TopBar from './components/TopBar.jsx';
+import Modal from './components/Modal.jsx';
 import TaskInput from './components/TaskInput.jsx';
 import TaskList from './components/TaskList.jsx';
 import TaskDetail from './components/TaskDetail.jsx';
 import Dashboard from './components/Dashboard.jsx';
 import UploadTab from './components/UploadTab.jsx';
 import Gallery from './components/Gallery.jsx';
-
-const TABS = ['Tasks', 'Dashboard', 'Upload', 'Gallery'];
 
 function taskId() {
   return `t_${Date.now()}_${Math.floor(Math.random() * 1e6)}`;
@@ -24,6 +25,8 @@ export default function App() {
   const [uploads, setUploads] = useState(persisted?.uploads ?? []);
   const [tab, setTab] = useState('Tasks');
   const [selectedTaskId, setSelectedTaskId] = useState(persisted?.tasks?.[0]?.id ?? null);
+  const [taskSearch, setTaskSearch] = useState('');
+  const [addTaskOpen, setAddTaskOpen] = useState(false);
 
   useEffect(() => {
     saveState({ tasks, uploads });
@@ -33,6 +36,12 @@ export default function App() {
     () => tasks.find((t) => t.id === selectedTaskId) || null,
     [tasks, selectedTaskId]
   );
+
+  const visibleTasks = useMemo(() => {
+    const q = taskSearch.trim().toLowerCase();
+    if (!q) return tasks;
+    return tasks.filter((t) => t.title.toLowerCase().includes(q));
+  }, [tasks, taskSearch]);
 
   function createTask(title, tags) {
     const category = detectCategory(title);
@@ -48,6 +57,7 @@ export default function App() {
     setTasks((prev) => [task, ...prev]);
     setSelectedTaskId(task.id);
     setTab('Tasks');
+    setAddTaskOpen(false);
   }
 
   function updateTask(id, patch) {
@@ -74,50 +84,57 @@ export default function App() {
   }
 
   return (
-    <div className="app">
-      <header className="topbar">
-        <div className="brand">Studio Tracker</div>
-        <nav className="tabs">
-          {TABS.map((t) => (
-            <button
-              key={t}
-              className={`tab ${tab === t ? 'active' : ''}`}
-              onClick={() => setTab(t)}
-            >
-              {t}
-            </button>
-          ))}
-        </nav>
-      </header>
+    <div className="app-shell">
+      <Sidebar active={tab} onSelect={setTab} />
 
-      <main className="main">
-        {tab === 'Tasks' && (
-          <div className="tasks-layout">
-            <div className="tasks-sidebar">
-              <TaskInput onCreate={createTask} />
-              <TaskList
-                tasks={tasks}
-                selectedId={selectedTaskId}
-                onSelect={setSelectedTaskId}
-                onDelete={deleteTask}
-              />
-            </div>
-            <div className="tasks-content">
-              {selectedTask ? (
-                <TaskDetail task={selectedTask} onUpdate={updateTask} />
-              ) : (
-                <div className="empty-state">Select or create a task to see its checklist.</div>
-              )}
-            </div>
-          </div>
-        )}
+      <div className="app-content">
+        <TopBar
+          search={taskSearch}
+          onSearchChange={setTaskSearch}
+          onAddTask={() => setAddTaskOpen(true)}
+        />
 
-        {tab === 'Dashboard' && <Dashboard tasks={tasks} uploads={uploads} />}
+        <main className="main">
+          {tab === 'Tasks' && (
+            <>
+              <h1 className="page-title">Tasks</h1>
+              <div className="tasks-layout">
+                <div className="tasks-sidebar">
+                  <TaskList
+                    tasks={visibleTasks}
+                    selectedId={selectedTaskId}
+                    onSelect={setSelectedTaskId}
+                    onDelete={deleteTask}
+                  />
+                </div>
+                <div className="tasks-content">
+                  {selectedTask ? (
+                    <TaskDetail task={selectedTask} onUpdate={updateTask} />
+                  ) : (
+                    <div className="empty-state">
+                      {tasks.length === 0
+                        ? 'Add a task to generate its checklist.'
+                        : 'Select a task to see its checklist.'}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
 
-        {tab === 'Upload' && <UploadTab tasks={tasks} onAddUpload={addUpload} />}
+          {tab === 'Dashboard' && <Dashboard tasks={tasks} uploads={uploads} />}
 
-        {tab === 'Gallery' && <Gallery tasks={tasks} uploads={uploads} />}
-      </main>
+          {tab === 'Upload' && <UploadTab tasks={tasks} onAddUpload={addUpload} />}
+
+          {tab === 'Gallery' && <Gallery tasks={tasks} uploads={uploads} />}
+        </main>
+      </div>
+
+      {addTaskOpen && (
+        <Modal title="New task" onClose={() => setAddTaskOpen(false)}>
+          <TaskInput onCreate={createTask} />
+        </Modal>
+      )}
     </div>
   );
 }

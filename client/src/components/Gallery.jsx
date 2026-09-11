@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react';
 import { CATEGORY_LABELS } from '../lib/taskTemplates.js';
+import { tintForTags } from '../lib/tagTint.js';
+import Icon from './Icon.jsx';
 
 export default function Gallery({ tasks, uploads }) {
   const [query, setQuery] = useState('');
@@ -25,13 +27,18 @@ export default function Gallery({ tasks, uploads }) {
 
   return (
     <div className="gallery">
+      <h1 className="page-title">Gallery</h1>
+
       <div className="gallery-controls">
-        <input
-          className="input"
-          placeholder="Search by task or filename..."
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
+        <div className="topbar-search gallery-search">
+          <Icon name="search" size={16} />
+          <input
+            className="topbar-search-input"
+            placeholder="Search by task or filename..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </div>
         <select className="select" value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
           <option value="all">All categories</option>
           {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
@@ -56,15 +63,18 @@ export default function Gallery({ tasks, uploads }) {
         <div className="gallery-grid">
           {filtered.map((u) => {
             const task = taskById[u.taskId];
+            const tint = tintForTags(u.tags);
             return (
               <div className="gallery-card" key={u.id}>
-                <img src={u.dataUrl} alt={u.filename} />
+                <div className={`gallery-thumb tint-${tint}`}>
+                  <img src={u.dataUrl} alt={u.filename} />
+                </div>
                 <div className="gallery-card-body">
                   <div className="gallery-card-title">{task?.title || u.filename}</div>
                   <div className="task-meta">
                     <span className="badge">{CATEGORY_LABELS[u.category] || u.category}</span>
                     {(u.tags || []).map((tag) => (
-                      <span className="badge" key={tag}>
+                      <span className={`badge tag-pill tint-${tintForTags([tag])}`} key={tag}>
                         {tag.replace('_', ' ')}
                       </span>
                     ))}
