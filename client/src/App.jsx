@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { loadState, saveState } from './lib/storage.js';
 import { detectCategory, generateSubtasks } from './lib/taskTemplates.js';
+import { mergePackIntoResearchData } from './lib/researchPack.js';
 import Sidebar from './components/Sidebar.jsx';
 import Home from './components/Home.jsx';
 import TopBar from './components/TopBar.jsx';
@@ -9,6 +10,7 @@ import TaskInput from './components/TaskInput.jsx';
 import TaskList from './components/TaskList.jsx';
 import TaskDetail from './components/TaskDetail.jsx';
 import Dashboard from './components/Dashboard.jsx';
+import ResearchTab from './components/ResearchTab.jsx';
 import UploadTab from './components/UploadTab.jsx';
 import Gallery from './components/Gallery.jsx';
 
@@ -73,6 +75,37 @@ export default function App() {
     );
   }
 
+  function createTaskFromResearch(title, category, tags, pack) {
+    const subtasks = generateSubtasks(category);
+    const researchIdx = subtasks.findIndex((s) => s.type === 'research');
+    if (researchIdx >= 0 && pack) {
+      subtasks[researchIdx] = {
+        ...subtasks[researchIdx],
+        data: mergePackIntoResearchData(subtasks[researchIdx].data, pack),
+      };
+    }
+    const task = {
+      id: taskId(),
+      title,
+      category,
+      tags,
+      subtasks,
+      createdAt: new Date().toISOString(),
+      completedAt: null,
+    };
+    setTasks((prev) => [task, ...prev]);
+    setSelectedTaskId(task.id);
+  }
+
+  function attachResearchToTask(id, pack) {
+    if (!pack) return;
+    updateTask(id, (t) => ({
+      subtasks: t.subtasks.map((s) =>
+        s.type === 'research' ? { ...s, data: mergePackIntoResearchData(s.data, pack) } : s
+      ),
+    }));
+  }
+
   function deleteTask(id) {
     setTasks((prev) => prev.filter((t) => t.id !== id));
     if (selectedTaskId === id) setSelectedTaskId(null);
@@ -133,6 +166,14 @@ export default function App() {
                 </div>
               </div>
             </>
+          )}
+
+          {tab === 'Research' && (
+            <ResearchTab
+              tasks={tasks}
+              onCreateTask={createTaskFromResearch}
+              onAttachToTask={attachResearchToTask}
+            />
           )}
 
           {tab === 'Dashboard' && <Dashboard tasks={tasks} uploads={uploads} />}

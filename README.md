@@ -44,9 +44,15 @@ server runs fine with no API key — only the auto-research button needs one
    locked, edit or delete anything it adds. **Requires `ANTHROPIC_API_KEY`**
    in `server/.env` (copy `server/.env.example`) — without one, the button
    shows a clear error and everything else in the app still works.
-5. **Upload + rating** — upload a PNG/JPG tied to a task and get a structured
-   critique card (overall score, whitespace, research/reference, composition,
-   color, typography, strengths/improvements). Rating runs entirely in the
+5. **Research tab** — the same research engine as a standalone tab: describe
+   a design idea or brand outline (or upload a brief) before any task exists,
+   and get a visual moodboard — color palette swatches, keyword chips, and
+   reference links. Then either **create a new task** pre-filled with that
+   research, or **attach it to an existing task's** Research step. Same
+   `ANTHROPIC_API_KEY` requirement as auto-research above.
+6. **Upload + rating** — upload a PNG/JPG tied to a task and get a structured
+   critique card (score, pros/cons, numbered "steps to improve", and real
+   Pinterest/Dribbble/Behance research links). Rating runs entirely in the
    browser via `client/src/lib/designAnalysis.js`, **no API key needed**:
    - **Whitespace/margins/grouping** are measured directly from the image's
      pixels (background-color estimation, margin-band bleed detection, gap
@@ -55,12 +61,12 @@ server runs fine with no API key — only the auto-research button needs one
      on the linked task (notes length, link count, pinned reference images) —
      so it reflects your real process, not the image.
    - **Composition/color/typography** are lighter heuristics (quadrant
-     balance, dominant-color clustering, luminance contrast). They're a rough
-     sanity check, not real visual understanding — the summary text says so.
-6. **Dashboard** — tinted stat cards (active/completed tasks, avg. rating)
+     balance, dominant-color clustering, luminance contrast) — a rough
+     sanity check, not real visual understanding.
+7. **Dashboard** — tinted stat cards (active/completed tasks, avg. rating)
    with sparklines and week-over-week % change, a weekly-completions bar
    chart, and a completion-rate donut.
-7. **Gallery** — all uploaded designs, filterable by category/tag, searchable
+8. **Gallery** — all uploaded designs, filterable by category/tag, searchable
    by task/filename. Cards and tag pills are color-tinted by client category
    (wellness = blue, beauty/skincare = pink, portfolio = lavender,
    food/snacks = green).

@@ -38,6 +38,12 @@ const PATHS = {
       <path d="m4 17 4.5-5 4 4.5L17 11l3 4.5" />
     </>
   ),
+  compass: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="m15 9-2 6-6 2 2-6 6-2Z" />
+    </>
+  ),
   search: (
     <>
       <circle cx="10.5" cy="10.5" r="6.5" />

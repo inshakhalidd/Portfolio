@@ -2,19 +2,7 @@ import { useState } from 'react';
 import Icon from './Icon.jsx';
 import { extractBriefText } from '../lib/briefFile.js';
 import { API_BASE } from '../lib/apiBase.js';
-
-function formatPackIntoNotes(pack) {
-  const lines = [`Auto-research (${new Date().toLocaleDateString()}):`];
-  if (pack.keywords?.length) {
-    lines.push(`Keywords: ${pack.keywords.join(', ')}`);
-  }
-  if (pack.palette?.length) {
-    lines.push(
-      `Palette: ${pack.palette.map((p) => `${p.hex} (${p.reasoning})`).join('; ')}`
-    );
-  }
-  return lines.join('\n');
-}
+import { mergePackIntoResearchData } from '../lib/researchPack.js';
 
 function AutoResearch({ taskTitle, category, data, onChange }) {
   const [open, setOpen] = useState(false);
@@ -44,23 +32,7 @@ function AutoResearch({ taskTitle, category, data, onChange }) {
       if (!res.ok) throw new Error(json.error || 'Auto-research failed.');
 
       const pack = json.pack;
-      const existingUrls = new Set(data.links);
-      const newLinks = (pack.links || [])
-        .map((l) => l.url)
-        .filter((url) => url && !existingUrls.has(url));
-      const linkNotes = (pack.links || [])
-        .map((l) => `${l.url} — ${l.description}`)
-        .join('\n');
-
-      const notesAddition = [formatPackIntoNotes(pack), linkNotes && `\n${linkNotes}`]
-        .filter(Boolean)
-        .join('\n');
-
-      onChange({
-        ...data,
-        links: [...data.links, ...newLinks],
-        notes: data.notes ? `${data.notes}\n\n${notesAddition}` : notesAddition,
-      });
+      onChange(mergePackIntoResearchData(data, pack));
       setLastPack(pack);
     } catch (err) {
       setError(err.message);
