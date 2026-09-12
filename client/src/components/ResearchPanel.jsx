@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import Icon from './Icon.jsx';
 import { extractBriefText } from '../lib/briefFile.js';
+import { API_BASE } from '../lib/apiBase.js';
 
 function formatPackIntoNotes(pack) {
   const lines = [`Auto-research (${new Date().toLocaleDateString()}):`];
@@ -34,7 +35,7 @@ function AutoResearch({ taskTitle, category, data, onChange }) {
       if (file) fileText = await extractBriefText(file);
       const combinedBrief = [brief.trim(), fileText.trim()].filter(Boolean).join('\n\n');
 
-      const res = await fetch('/api/auto-research', {
+      const res = await fetch(`${API_BASE}/api/auto-research`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ topic, brief: combinedBrief, category }),

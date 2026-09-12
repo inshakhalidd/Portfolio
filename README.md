@@ -66,3 +66,33 @@ server runs fine with no API key — only the auto-research button needs one
    food/snacks = green).
 
 Data (tasks, subtasks, uploads) persists to `localStorage` in the browser.
+
+## Deploying it live (not as an Artifact)
+
+This is a real two-part app (a static frontend + a small backend for the
+auto-research feature), so it needs actual hosting rather than a
+single-file preview. `render.yaml` in the repo root is a ready-to-use
+[Render](https://render.com) Blueprint that deploys both pieces together:
+
+1. Push this repo to GitHub (already done if you're reading this from the repo).
+2. Go to [dashboard.render.com](https://dashboard.render.com) → **New** → **Blueprint**.
+3. Connect this repo (`inshakhalidd/Portfolio`) and pick the branch.
+4. Render reads `render.yaml` and proposes two services:
+   - `studio-tracker-web` — static site (the React app)
+   - `studio-tracker-api` — the Express server (only used for auto-research)
+5. Before deploying, set the `ANTHROPIC_API_KEY` env var on
+   `studio-tracker-api` in the Render dashboard (Blueprint intentionally
+   leaves it blank — never commit a key). Skip it if you don't want
+   auto-research live; the rest of the app works fine without it.
+6. Click **Apply** — Render builds and deploys both services, and wires the
+   frontend's `VITE_API_URL` to the backend's URL automatically.
+
+Free-tier note: Render's free web services spin down after inactivity, so
+the first auto-research request after a quiet period may take ~30s to wake
+the server. The static site has no such cold start.
+
+**Other platforms:** the same repo works on Vercel, Netlify, or Railway —
+just point them at `client/` for a static build (`npm run build`, output
+`dist/`) and, if you want auto-research, `server/` as a separate Node
+service (`npm start`, with `ANTHROPIC_API_KEY` set) — then set
+`VITE_API_URL` on the frontend to the backend's deployed URL.
