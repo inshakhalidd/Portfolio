@@ -1,7 +1,12 @@
 // Free, local, heuristic design critique — no external API calls.
-// Runs entirely in the browser via <canvas> pixel analysis. It's a rough
-// proxy for real critique, not a substitute for human (or AI vision) eyes —
-// see the disclaimer baked into the summary text below.
+// Runs entirely in the browser via <canvas> pixel analysis, scored and worded
+// against real fundamentals (whitespace, contrast, balance, palette control)
+// the way a design lead would talk through a file. It measures pixels, not
+// intent — it can't read type or judge taste — so treat it as a fast first
+// pass, not the final word.
+
+import { CATEGORY_LABELS } from './taskTemplates.js';
+import { buildVisualResearchLinks } from './visualResearch.js';
 
 const MAX_DIM = 260; // downscale for speed; heuristics don't need full res
 const BG_DISTANCE_THRESHOLD = 42; // RGB distance under which a pixel counts as "background"
@@ -331,30 +336,77 @@ export async function analyzeDesign(file, task) {
     (paletteScore * 0.5 + contrastScore * 0.5) * 0.15 +
     typographyScore * 0.15;
 
-  const strengths = [];
-  const improvements = [];
-  const consider = (label, score, strengthText, improveText) => {
-    if (score >= 7.5) strengths.push(strengthText);
-    else if (score <= 5) improvements.push(improveText);
-  };
-  consider('whitespace', whitespaceScore, 'Whitespace and margins are working well.', 'Whitespace/margins need attention — see notes above.');
-  consider('research', research.score, 'Clear research trail behind this piece.', 'Ground this piece in more reference before finalizing.');
-  consider('composition', compositionScore, 'Balanced composition across the frame.', 'Composition feels lopsided — recheck visual balance.');
-  consider('color', paletteScore, 'Cohesive, controlled color palette.', 'Color palette could be tightened up.');
-  consider('contrast', contrastScore, 'Good contrast for legibility.', 'Contrast is low — may hurt legibility.');
-  if (!strengths.length) strengths.push('Nothing stands out as a clear strength yet — keep iterating.');
-  if (!improvements.length) improvements.push('No major red flags from this pass.');
+  // Each dimension carries an easy, concrete fix — used to build the ranked
+  // "steps to improve" list below (worst dimension first).
+  const dimensions = [
+    {
+      key: 'whitespace',
+      score: whitespaceScore,
+      pro: 'Whitespace and margins are working well — the layout has room to breathe.',
+      con: 'Whitespace/margins are cramped, which reads as unfinished.',
+      step: m.bleedingEdges.length
+        ? `Add breathing room on the ${m.bleedingEdges.join(' and ')} edge${m.bleedingEdges.length > 1 ? 's' : ''} — pull content in until there's a clear gap from the frame border.`
+        : 'Group related elements tighter together and add a bit more empty space between different groups — right now it reads as one dense block.',
+    },
+    {
+      key: 'research',
+      score: research.score,
+      pro: 'Clear research trail behind this piece — it looks grounded in real reference.',
+      con: 'Not enough reference/research backing this piece yet.',
+      step: 'Open the task\'s Research step and pin 2-3 real examples you like, plus a sentence on what you\'re borrowing from each.',
+    },
+    {
+      key: 'composition',
+      score: compositionScore,
+      pro: 'Balanced composition — visual weight is spread evenly across the frame.',
+      con: 'Composition feels lopsided — most of the visual weight sits in one corner.',
+      step: 'Move your heaviest element (logo, headline, photo) closer to the center, or add a smaller counterweight in the opposite corner.',
+    },
+    {
+      key: 'color',
+      score: paletteScore,
+      pro: 'Cohesive, controlled color palette — it doesn\'t compete with itself.',
+      con: 'Too many competing colors are fighting for attention.',
+      step: 'Pick 2-3 main colors, then use everything else only as small accents — try deleting one color entirely and see if it still works.',
+    },
+    {
+      key: 'contrast',
+      score: contrastScore,
+      pro: 'Good contrast — text and key elements stand out clearly.',
+      con: 'Low contrast between elements and their background hurts legibility.',
+      step: 'Darken your text or lighten its background (or the reverse) until you could read it from across the room.',
+    },
+  ];
+
+  const pros = dimensions.filter((d) => d.score >= 7.5).map((d) => d.pro);
+  const cons = dimensions.filter((d) => d.score <= 5).map((d) => d.con);
+  if (!pros.length) pros.push('Nothing stands out as a clear strength yet — keep iterating.');
+  if (!cons.length) cons.push('No major red flags from this pass.');
+
+  const weakestFirst = [...dimensions].sort((a, b) => a.score - b.score);
+  const steps = weakestFirst.slice(0, 3).map((d, i) => `Step ${i + 1}: ${d.step}`);
+
+  const categoryLabel = CATEGORY_LABELS[task?.category] || 'design';
+  const visualResearch = buildVisualResearchLinks(
+    categoryLabel,
+    task?.tags,
+    weakestFirst[0]?.key
+  );
 
   return {
     overall_score: Math.round(overall * 10) / 10,
     summary:
-      'Automated local read (pixel heuristics only, no AI vision) — treat this as a quick sanity check, not a substitute for your own eye.',
+      'Reviewed against the fundamentals a design lead checks first: whitespace, ' +
+      'balance, palette control, and contrast — all measured directly from your file, ' +
+      'not guessed. It can\'t read actual type, so give typography a final look yourself.',
     whitespace: { score: whitespaceScore, notes: whitespaceNotesParts.join(' ') },
     research_and_reference: research,
     composition: compositionNote,
     color: colorNote + contrastNote,
     typography: typographyNote,
-    strengths,
-    improvements,
+    pros,
+    cons,
+    steps,
+    visual_research: visualResearch,
   };
 }

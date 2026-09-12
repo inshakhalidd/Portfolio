@@ -46,21 +46,46 @@ function CritiqueCard({ critique }) {
 
       <div className="critique-columns">
         <div>
-          <div className="critique-section-title">Strengths</div>
+          <div className="critique-section-title">Pros</div>
           <ul>
-            {critique.strengths.map((s, i) => (
+            {critique.pros.map((s, i) => (
               <li key={i}>{s}</li>
             ))}
           </ul>
         </div>
         <div>
-          <div className="critique-section-title">Improve</div>
+          <div className="critique-section-title">Cons</div>
           <ul>
-            {critique.improvements.map((s, i) => (
+            {critique.cons.map((s, i) => (
               <li key={i}>{s}</li>
             ))}
           </ul>
         </div>
+      </div>
+
+      <div className="critique-section steps-section">
+        <div className="critique-section-title">Steps to improve</div>
+        <ol className="steps-list">
+          {critique.steps.map((s, i) => (
+            <li key={i}>{s.replace(/^Step \d+:\s*/, '')}</li>
+          ))}
+        </ol>
+      </div>
+
+      <div className="critique-section">
+        <div className="critique-section-title">Visual research</div>
+        <p className="visual-research-hint">
+          Real search links, built from this task's category and tags — not fabricated results.
+        </p>
+        <ul className="visual-research-list">
+          {critique.visual_research.map((r, i) => (
+            <li key={i}>
+              <a href={r.url} target="_blank" rel="noreferrer">
+                {r.label}
+              </a>
+            </li>
+          ))}
+        </ul>
       </div>
     </div>
   );
