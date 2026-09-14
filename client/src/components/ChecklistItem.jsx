@@ -108,7 +108,9 @@ export default function ChecklistItem({
         </button>
       </div>
 
-      {showInfo && <div className="step-info">{SUBTASK_TYPE_DESCRIPTIONS[subtask.type]}</div>}
+      {showInfo && (
+        <div className="step-info">{subtask.description || SUBTASK_TYPE_DESCRIPTIONS[subtask.type]}</div>
+      )}
 
       {blocked && !subtask.done && !locked && (
         <div className="hint-warning">Fill this in before checking it off.</div>
