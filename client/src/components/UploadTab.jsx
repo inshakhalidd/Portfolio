@@ -115,7 +115,13 @@ export default function UploadTab({ tasks, onAddUpload }) {
         {result ? (
           <>
             <CritiqueCard critique={result} />
-            {guideline && <BrandGuidelineCard guideline={guideline} />}
+            {guideline && (
+              <BrandGuidelineCard
+                guideline={guideline}
+                brandName={tasks.find((t) => t.id === taskId)?.title || file?.name}
+                logoUrl={preview}
+              />
+            )}
           </>
         ) : (
           <div className="empty-state">Upload a design to get free, local structured feedback.</div>

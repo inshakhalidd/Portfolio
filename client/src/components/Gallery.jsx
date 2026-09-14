@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { CATEGORY_LABELS } from '../lib/taskTemplates.js';
 import { categorySoftVar, tintKeyForTags } from '../lib/categoryColors.js';
+import { getSignedImageUrl } from '../lib/db.js';
 import CategoryPill from './CategoryPill.jsx';
 import CritiqueCard from './CritiqueCard.jsx';
 import BrandGuidelineCard from './BrandGuidelineCard.jsx';
@@ -12,6 +13,7 @@ export default function Gallery({ tasks, uploads, onGoToTask }) {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [tagFilter, setTagFilter] = useState('all');
   const [openId, setOpenId] = useState(null);
+  const [openImageUrl, setOpenImageUrl] = useState(null);
 
   const taskById = useMemo(() => Object.fromEntries(tasks.map((t) => [t.id, t])), [tasks]);
 
@@ -32,6 +34,22 @@ export default function Gallery({ tasks, uploads, onGoToTask }) {
 
   const openUpload = openId ? uploads.find((u) => u.id === openId) : null;
   const openTask = openUpload ? taskById[openUpload.taskId] : null;
+
+  useEffect(() => {
+    if (!openUpload) {
+      setOpenImageUrl(null);
+      return;
+    }
+    let cancelled = false;
+    getSignedImageUrl(openUpload.imagePath)
+      .then((url) => {
+        if (!cancelled) setOpenImageUrl(url);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [openUpload]);
 
   return (
     <div className="gallery-page animate-in">
@@ -116,7 +134,11 @@ export default function Gallery({ tasks, uploads, onGoToTask }) {
             <>
               <CritiqueCard critique={openUpload.critique} />
               {openUpload.critique.brand_guideline && (
-                <BrandGuidelineCard guideline={openUpload.critique.brand_guideline} />
+                <BrandGuidelineCard
+                  guideline={openUpload.critique.brand_guideline}
+                  brandName={openTask?.title || openUpload.filename}
+                  logoUrl={openImageUrl}
+                />
               )}
               {openTask && (
                 <button

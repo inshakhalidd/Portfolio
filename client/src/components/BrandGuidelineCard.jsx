@@ -1,10 +1,48 @@
-export default function BrandGuidelineCard({ guideline }) {
+import { useState } from 'react';
+import { downloadBrandGuidelinePdf } from '../lib/brandGuidelinePdf.js';
+
+async function resolveLogoDataUrl(logoUrl) {
+  if (!logoUrl) return null;
+  if (logoUrl.startsWith('data:')) return logoUrl;
+  const res = await fetch(logoUrl);
+  const blob = await res.blob();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+export default function BrandGuidelineCard({ guideline, brandName, logoUrl }) {
+  const [downloading, setDownloading] = useState(false);
+  const [error, setError] = useState(null);
+
+  async function handleDownload() {
+    setDownloading(true);
+    setError(null);
+    try {
+      const logoDataUrl = await resolveLogoDataUrl(logoUrl);
+      await downloadBrandGuidelinePdf({ guideline, brandName, logoDataUrl });
+    } catch (err) {
+      setError('Could not build the PDF — try again.');
+    } finally {
+      setDownloading(false);
+    }
+  }
+
   return (
     <div className="critique-card">
       <div className="critique-top-row">
         <div className="critique-summary-col">
           <span className="critique-summary-label">Starting brand guideline</span>
           <p className="critique-summary">{guideline.summary}</p>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+          <button className="btn btn-primary" type="button" onClick={handleDownload} disabled={downloading}>
+            {downloading ? 'Building PDF…' : 'Download PDF'}
+          </button>
+          {error && <span className="hint-warning" style={{ margin: 0 }}>{error}</span>}
         </div>
       </div>
 
