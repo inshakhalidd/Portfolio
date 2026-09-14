@@ -18,6 +18,44 @@ import {
 } from './researchBank.js';
 import { buildVisualResearchLinks } from './visualResearch.js';
 
+const STOPWORDS = new Set([
+  'the', 'a', 'an', 'and', 'or', 'but', 'for', 'with', 'this', 'that', 'these', 'those', 'is',
+  'are', 'was', 'were', 'be', 'been', 'being', 'to', 'of', 'in', 'on', 'at', 'by', 'it', 'its',
+  'as', 'we', 'our', 'you', 'your', 'their', 'they', 'them', 'i', 'me', 'my', 'if', 'so', 'than',
+  'then', 'also', 'into', 'about', 'from', 'will', 'would', 'should', 'can', 'could', 'just',
+  'like', 'more', 'most', 'some', 'any', 'all', 'need', 'needs', 'needed', 'want', 'wants',
+  'wanted', 'get', 'gets', 'make', 'makes', 'making', 'has', 'have', 'had', 'do', 'does', 'did',
+  'not', 'no', 'yes', 'very', 'really', 'client', 'clients', 'brand', 'design', 'designer', 'project',
+]);
+
+function tokenize(text) {
+  return (text || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s'-]/g, ' ')
+    .split(/\s+/)
+    .filter((w) => w.length > 2 && !STOPWORDS.has(w));
+}
+
+const FOCUS_ANGLE = {
+  portfolio: (t) => `Make sure "${t}" is clearly visible in your strongest piece, not buried in the middle.`,
+  social_post: (t) => `Lead with "${t}" in the first two seconds of the scroll — that's the hook.`,
+  brand_identity: (t) => `Build the visual system around "${t}" so it reads consistently across every touchpoint.`,
+  general: (t) => `Keep "${t}" front and center — don't let it get diluted by extra elements.`,
+};
+
+// Pulls the most-repeated meaningful words out of a brief and turns each
+// into a one-line "what to focus on" note, anchored to the task category.
+// Purely local word-frequency counting — no network call, deterministic.
+export function extractFocusPoints(brief, category) {
+  const terms = tokenize(brief);
+  if (!terms.length) return [];
+  const freq = new Map();
+  for (const t of terms) freq.set(t, (freq.get(t) || 0) + 1);
+  const ranked = [...freq.entries()].sort((a, b) => b[1] - a[1]).map(([t]) => t);
+  const angle = FOCUS_ANGLE[category] || FOCUS_ANGLE.general;
+  return ranked.slice(0, 5).map(angle);
+}
+
 export function buildFreeResearchPack(topic, brief, category, tags = []) {
   const cat = CATEGORY_AUDIENCE[category] ? category : 'general';
   const topicLabel = topic?.trim() || CATEGORY_LABELS[cat];
@@ -40,11 +78,14 @@ export function buildFreeResearchPack(topic, brief, category, tags = []) {
     description: l.label,
   }));
 
+  const focus_points = brief?.trim() ? extractFocusPoints(brief, cat) : [];
+
   return {
     mode: 'free',
     audience_note,
     positioning_angle,
     keywords,
+    focus_points,
     palette,
     links,
   };

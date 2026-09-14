@@ -3,6 +3,7 @@ import { CATEGORY_LABELS } from '../lib/taskTemplates.js';
 import { categorySoftVar, tintKeyForTags } from '../lib/categoryColors.js';
 import CategoryPill from './CategoryPill.jsx';
 import CritiqueCard from './CritiqueCard.jsx';
+import BrandGuidelineCard from './BrandGuidelineCard.jsx';
 import Modal from './Modal.jsx';
 import SignedImage from './SignedImage.jsx';
 
@@ -114,6 +115,9 @@ export default function Gallery({ tasks, uploads, onGoToTask }) {
           {openUpload.critique ? (
             <>
               <CritiqueCard critique={openUpload.critique} />
+              {openUpload.critique.brand_guideline && (
+                <BrandGuidelineCard guideline={openUpload.critique.brand_guideline} />
+              )}
               {openTask && (
                 <button
                   className="btn btn-primary modal-goto-task"

@@ -25,6 +25,20 @@ function Moodboard({ pack }) {
         </div>
       )}
 
+      {pack.focus_points?.length > 0 && (
+        <div className="moodboard-section">
+          <span className="critique-section-title">Focus points from your brief</span>
+          <ul className="steps-list">
+            {pack.focus_points.map((f, i) => (
+              <li key={i}>
+                <span className="step-num mono">{i + 1}</span>
+                <span className="step-text">{f}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <div className="moodboard-section">
         <span className="critique-section-title">Palette</span>
         <div className="palette-row">

@@ -18,7 +18,7 @@ function clamp(n, min, max) {
   return Math.max(min, Math.min(max, n));
 }
 
-async function loadImageData(file) {
+export async function loadImageData(file) {
   const bitmap = await createImageBitmap(file);
   const scale = Math.min(1, MAX_DIM / Math.max(bitmap.width, bitmap.height));
   const w = Math.max(1, Math.round(bitmap.width * scale));
@@ -31,11 +31,11 @@ async function loadImageData(file) {
   return ctx.getImageData(0, 0, w, h);
 }
 
-function colorDistance(r1, g1, b1, r2, g2, b2) {
+export function colorDistance(r1, g1, b1, r2, g2, b2) {
   return Math.sqrt((r1 - r2) ** 2 + (g1 - g2) ** 2 + (b1 - b2) ** 2);
 }
 
-function estimateBackground(data, w, h) {
+export function estimateBackground(data, w, h) {
   // sample the outer margin band, quantize, take the most common color
   const buckets = new Map();
   const bandW = Math.max(1, Math.round(w * MARGIN_BAND));

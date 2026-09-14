@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { CATEGORY_LABELS } from '../lib/taskTemplates.js';
 import { analyzeDesign } from '../lib/designAnalysis.js';
+import { buildBrandGuideline } from '../lib/brandGuideline.js';
 import CritiqueCard from './CritiqueCard.jsx';
+import BrandGuidelineCard from './BrandGuidelineCard.jsx';
 
 function fileToDataUrl(file) {
   return new Promise((resolve, reject) => {
@@ -16,13 +18,16 @@ export default function UploadTab({ tasks, onAddUpload }) {
   const [taskId, setTaskId] = useState(tasks[0]?.id ?? '');
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
+  const [isLogo, setIsLogo] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [result, setResult] = useState(null);
+  const [guideline, setGuideline] = useState(null);
 
   async function handleFile(f) {
     setFile(f);
     setResult(null);
+    setGuideline(null);
     setError(null);
     setPreview(f ? await fileToDataUrl(f) : null);
   }
@@ -33,9 +38,12 @@ export default function UploadTab({ tasks, onAddUpload }) {
     setLoading(true);
     setError(null);
     setResult(null);
+    setGuideline(null);
     try {
       const task = tasks.find((t) => t.id === taskId);
       const critique = await analyzeDesign(file, task);
+      const brand_guideline = isLogo ? await buildBrandGuideline(file, task) : null;
+      if (brand_guideline) critique.brand_guideline = brand_guideline;
 
       await onAddUpload(
         {
@@ -49,6 +57,7 @@ export default function UploadTab({ tasks, onAddUpload }) {
         file
       );
       setResult(critique);
+      setGuideline(brand_guideline);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -89,6 +98,11 @@ export default function UploadTab({ tasks, onAddUpload }) {
           ))}
         </select>
 
+        <label className="checkbox-row">
+          <input type="checkbox" checked={isLogo} onChange={(e) => setIsLogo(e.target.checked)} />
+          <span>This is a logo — also generate a starting brand guideline</span>
+        </label>
+
         <button className="btn btn-primary" type="submit" disabled={!file || loading}>
           {loading ? 'Analysing…' : 'Run critique'}
         </button>
@@ -99,7 +113,10 @@ export default function UploadTab({ tasks, onAddUpload }) {
 
       <div className="upload-result">
         {result ? (
-          <CritiqueCard critique={result} />
+          <>
+            <CritiqueCard critique={result} />
+            {guideline && <BrandGuidelineCard guideline={guideline} />}
+          </>
         ) : (
           <div className="empty-state">Upload a design to get free, local structured feedback.</div>
         )}
