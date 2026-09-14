@@ -1,11 +1,17 @@
-import { useState } from 'react';
-import { CATEGORY_LABELS, CLIENT_TAGS, detectCategory } from '../lib/taskTemplates.js';
+import { useEffect, useState } from 'react';
+import { CATEGORIES, CATEGORY_DESCRIPTIONS, CATEGORY_LABELS, CLIENT_TAGS, detectCategory } from '../lib/taskTemplates.js';
 
 export default function TaskInput({ onCreate }) {
   const [title, setTitle] = useState('');
   const [tags, setTags] = useState([]);
+  const [category, setCategory] = useState(CATEGORIES.GENERAL);
+  const [categoryTouched, setCategoryTouched] = useState(false);
 
-  const preview = title.trim() ? detectCategory(title) : null;
+  useEffect(() => {
+    if (!categoryTouched && title.trim()) {
+      setCategory(detectCategory(title));
+    }
+  }, [title, categoryTouched]);
 
   function toggleTag(tag) {
     setTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]));
@@ -15,9 +21,11 @@ export default function TaskInput({ onCreate }) {
     e.preventDefault();
     const t = title.trim();
     if (!t) return;
-    onCreate(t, tags);
+    onCreate(t, tags, category);
     setTitle('');
     setTags([]);
+    setCategory(CATEGORIES.GENERAL);
+    setCategoryTouched(false);
   }
 
   return (
@@ -30,9 +38,24 @@ export default function TaskInput({ onCreate }) {
         onChange={(e) => setTitle(e.target.value)}
         autoFocus
       />
-      {preview && (
-        <div className="preview-category">Detected: {CATEGORY_LABELS[preview]}</div>
-      )}
+
+      <label className="label">Category</label>
+      <select
+        className="select"
+        value={category}
+        onChange={(e) => {
+          setCategory(e.target.value);
+          setCategoryTouched(true);
+        }}
+      >
+        {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
+          <option key={key} value={key}>
+            {label}
+          </option>
+        ))}
+      </select>
+      <div className="preview-category">{CATEGORY_DESCRIPTIONS[category]}</div>
+
       <div className="tag-picker">
         {CLIENT_TAGS.map((tag) => (
           <button

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import ResearchPanel from './ResearchPanel.jsx';
 import WhitespacePanel from './WhitespacePanel.jsx';
+import { SUBTASK_TYPE_DESCRIPTIONS } from '../lib/taskTemplates.js';
 
 function canComplete(subtask) {
   if (subtask.type === 'research') {
@@ -31,6 +32,7 @@ export default function ChecklistItem({
 }) {
   const [open, setOpen] = useState(subtask.type !== 'standard' && !subtask.done);
   const [titleDraft, setTitleDraft] = useState(subtask.title);
+  const [showInfo, setShowInfo] = useState(false);
 
   const hasPanel = subtask.type === 'research' || subtask.type === 'whitespace';
   const blocked = locked || (!subtask.done && !canComplete(subtask));
@@ -77,6 +79,14 @@ export default function ChecklistItem({
         {locked && <span className="step-badge locked">locked</span>}
         {!locked && subtask.type === 'research' && <span className="step-badge">research</span>}
         {!locked && subtask.type === 'whitespace' && <span className="step-badge">whitespace</span>}
+        <button
+          type="button"
+          className={`icon-btn step-info-toggle ${showInfo ? 'active' : ''}`}
+          onClick={() => setShowInfo(!showInfo)}
+          title="What is this step?"
+        >
+          ?
+        </button>
 
         {canMoveUp && (
           <button className="icon-btn" onClick={() => onMove(-1)} title="Move up">
@@ -97,6 +107,8 @@ export default function ChecklistItem({
           ×
         </button>
       </div>
+
+      {showInfo && <div className="step-info">{SUBTASK_TYPE_DESCRIPTIONS[subtask.type]}</div>}
 
       {blocked && !subtask.done && !locked && (
         <div className="hint-warning">Fill this in before checking it off.</div>

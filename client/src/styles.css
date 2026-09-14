@@ -1113,6 +1113,32 @@ textarea:focus {
   margin: 4px 12px 0 46px;
 }
 
+.step-info-toggle {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  font-size: 11px;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+}
+.step-info-toggle.active {
+  color: var(--accent);
+  border-color: var(--accentLine);
+  background: var(--accentSoft);
+}
+
+.step-info {
+  color: var(--ink2);
+  font-size: 12.5px;
+  line-height: 1.5;
+  background: var(--panel2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  margin: 4px 12px 0 46px;
+  padding: 8px 10px;
+}
+
 /* research/whitespace expand panels */
 
 .subpanel {

@@ -122,3 +122,16 @@ export const CATEGORY_LABELS = {
   [CATEGORIES.BRAND_IDENTITY]: 'Brand Identity',
   [CATEGORIES.GENERAL]: 'General',
 };
+
+export const CATEGORY_DESCRIPTIONS = {
+  [CATEGORIES.PORTFOLIO]: 'Curating and sequencing past work into a cohesive showcase — case studies, layout, and storytelling.',
+  [CATEGORIES.SOCIAL_POST]: 'A single post or short series for a client’s social feed — fast-turnaround, on-brand, trend-aware.',
+  [CATEGORIES.BRAND_IDENTITY]: 'Building or extending a brand system — logo, color, typography, and the rules that hold it together.',
+  [CATEGORIES.GENERAL]: 'Anything that doesn’t fit the other categories yet — a plain research → draft → export flow.',
+};
+
+export const SUBTASK_TYPE_DESCRIPTIONS = {
+  standard: 'A regular step — check it off once you’ve done it. No extra info required.',
+  research: 'Gather references before you design: add links, notes, or reference images. Can’t be checked off empty.',
+  whitespace: 'A spacing pass — confirm margins, breathing room, and grouping are working before you move on.',
+};

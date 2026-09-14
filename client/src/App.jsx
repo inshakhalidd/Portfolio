@@ -8,7 +8,7 @@ import {
   deleteTaskRemote,
   insertUpload,
 } from './lib/db.js';
-import { detectCategory, generateSubtasks } from './lib/taskTemplates.js';
+import { generateSubtasks } from './lib/taskTemplates.js';
 import { mergePackIntoResearchData } from './lib/researchPack.js';
 import Auth from './components/Auth.jsx';
 import Sidebar from './components/Sidebar.jsx';
@@ -92,8 +92,7 @@ export default function App() {
     }
   }
 
-  function createTask(title, tags) {
-    const category = detectCategory(title);
+  function createTask(title, tags, category) {
     persistNewTask({
       title,
       category,
