@@ -1,10 +1,18 @@
-// Shared helpers for merging an auto-research "pack" (links + keywords +
-// palette, from the /api/auto-research backend) into a research subtask's
-// editable data, used by both the inline per-task Auto-research control and
-// the standalone Research tab.
+// Shared helpers for merging a research "pack" (audience note, positioning
+// angle, links, keywords, palette, mode) into a research subtask's editable
+// data, used by both the inline per-task Auto-research control and the
+// standalone Research tab.
 
 export function formatPackIntoNotes(pack) {
-  const lines = [`Auto-research (${new Date().toLocaleDateString()}):`];
+  const lines = [
+    `Research (${new Date().toLocaleDateString()}, ${pack.mode === 'ai' ? 'AI-boosted' : 'free'}):`,
+  ];
+  if (pack.audience_note) {
+    lines.push(`Audience: ${pack.audience_note}`);
+  }
+  if (pack.positioning_angle) {
+    lines.push(`Positioning: ${pack.positioning_angle}`);
+  }
   if (pack.keywords?.length) {
     lines.push(`Keywords: ${pack.keywords.join(', ')}`);
   }

@@ -96,6 +96,7 @@ export default function TaskDetail({ task, onUpdate }) {
               onMove={(dir) => moveSubtask(subtask.id, dir)}
               taskTitle={task.title}
               taskCategory={task.category}
+              taskTags={task.tags}
               canMoveUp={idx > 0}
               canMoveDown={idx < task.subtasks.length - 1}
             />

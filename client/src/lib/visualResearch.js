@@ -13,6 +13,14 @@ function behanceSearch(query) {
   return `https://www.behance.net/search/projects?search=${encodeURIComponent(query)}`;
 }
 
+function fontsInUseSearch(query) {
+  return `https://fontsinuse.com/search?q=${encodeURIComponent(query)}`;
+}
+
+function areNaSearch(query) {
+  return `https://www.are.na/search?q=${encodeURIComponent(query)}`;
+}
+
 export function buildVisualResearchLinks(categoryLabel, tags = [], focusKeyword) {
   const tagWords = tags.map((t) => t.replace(/_/g, ' '));
   const baseQuery = [categoryLabel, ...tagWords].filter(Boolean).join(' ');
@@ -30,6 +38,14 @@ export function buildVisualResearchLinks(categoryLabel, tags = [], focusKeyword)
     {
       label: `Behance — "${focusQuery}"`,
       url: behanceSearch(focusQuery),
+    },
+    {
+      label: `Fonts In Use — "${baseQuery}"`,
+      url: fontsInUseSearch(baseQuery),
+    },
+    {
+      label: `Are.na — "${focusQuery}"`,
+      url: areNaSearch(focusQuery),
     },
   ];
 }

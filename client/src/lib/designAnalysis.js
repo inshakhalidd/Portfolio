@@ -7,6 +7,8 @@
 
 import { CATEGORY_LABELS } from './taskTemplates.js';
 import { buildVisualResearchLinks } from './visualResearch.js';
+import { targetsFor } from './ratingTargets.js';
+import { searchKeywordsFor } from './ratingKeywords.js';
 
 const MAX_DIM = 260; // downscale for speed; heuristics don't need full res
 const BG_DISTANCE_THRESHOLD = 42; // RGB distance under which a pixel counts as "background"
@@ -270,13 +272,28 @@ function researchScoreFor(task) {
   return { score, notes };
 }
 
+function paletteScoreFor(paletteSize, targets) {
+  if (paletteSize <= 1) return 5; // near-monochrome is ambiguous in any category
+  const diff = Math.abs(paletteSize - targets.idealPaletteSize);
+  if (diff <= 1) return 9;
+  if (paletteSize <= targets.paletteToleranceHigh) return 7;
+  return 4;
+}
+
 export async function analyzeDesign(file, task) {
   const imageData = await loadImageData(file);
   const m = analyzePixels(imageData);
+  const category = task?.category || 'general';
+  const categoryLabel = CATEGORY_LABELS[category] || 'design';
+  const targets = targetsFor(category);
 
   const whitespacePct100 = m.whitespacePct * 100;
-  const whitespaceCoreScore = clamp(10 - Math.abs(whitespacePct100 - 50) / 6, 1, 10);
-  const marginScore = clamp(10 - (m.marginBleedPct * 100) / 6, 1, 10);
+  const whitespaceCoreScore = clamp(
+    10 - Math.abs(whitespacePct100 - targets.idealWhitespacePct) / 6,
+    1,
+    10
+  );
+  const marginScore = clamp(10 - (m.marginBleedPct * 100) / targets.marginDivisor, 1, 10);
   const groupingScore =
     m.gapCount === 0 ? 4 : m.gapCount <= 2 ? 7 : m.gapCount <= 5 ? 9 : 6;
   const whitespaceScore = Math.round(
@@ -284,50 +301,47 @@ export async function analyzeDesign(file, task) {
   ) / 10;
 
   const whitespaceNotesParts = [
-    `About ${whitespacePct100.toFixed(0)}% of the frame reads as open/background space.`,
+    `For a ${categoryLabel.toLowerCase()}, we'd expect roughly ${targets.idealWhitespacePct}% open space (whitespace — the empty areas with nothing in them). Yours measures about ${whitespacePct100.toFixed(0)}%.`,
   ];
   if (m.bleedingEdges.length) {
     whitespaceNotesParts.push(
-      `Content runs close to the ${m.bleedingEdges.join(', ')} edge${m.bleedingEdges.length > 1 ? 's' : ''} — margin there looks tight.`
+      `Content runs right up to the ${m.bleedingEdges.join(' and ')} edge${m.bleedingEdges.length > 1 ? 's' : ''} — there's barely any margin (empty space around the outside) there.`
     );
   } else {
-    whitespaceNotesParts.push('Margins hold up on all four edges.');
+    whitespaceNotesParts.push('Good news: the margin (empty space around the outside) holds up on all four edges.');
   }
   whitespaceNotesParts.push(
     m.gapCount <= 1
-      ? 'Elements read as one dense cluster — little separation between groups.'
-      : 'There\'s visible separation between content groups.'
+      ? 'Everything reads as one packed block — there\'s no visible gap between different groups of elements.'
+      : 'There\'s a visible gap between different groups of elements, which helps the eye sort them apart.'
   );
 
   const research = researchScoreFor(task);
 
-  const paletteScore =
-    m.paletteSize <= 1 ? 5 : m.paletteSize <= 4 ? 9 : m.paletteSize <= 7 ? 6 : 4;
+  const paletteScore = paletteScoreFor(m.paletteSize, targets);
   const colorNote =
     m.paletteSize <= 1
-      ? 'Reads as nearly monochrome — could be intentional, but check it\'s not flattening the design.'
-      : m.paletteSize <= 4
-      ? `Roughly ${m.paletteSize} dominant color clusters — a tight, cohesive palette.`
-      : `Roughly ${m.paletteSize} dominant color clusters — palette may be getting busy; consider consolidating.`;
+      ? 'This reads as almost one single color (near-monochrome) — that might be on purpose, but double-check it isn\'t flattening the design.'
+      : `We're picking up about ${m.paletteSize} main colors. For a ${categoryLabel.toLowerCase()}, ${targets.idealPaletteSize} is a comfortable target — ${m.paletteSize <= targets.paletteToleranceHigh ? 'you\'re in a reasonable range.' : 'that\'s more colors than usual for this category, which can look busy.'}`;
 
   const contrastScore = clamp((m.contrastSpread / 255) * 10, 1, 10);
   const contrastNote =
     m.contrastSpread < 60
-      ? ' Low luminance range detected — text/elements may lack contrast against their surroundings.'
-      : ' Healthy luminance range — content should stand out from its background.';
+      ? ' Contrast (how much your text/shapes stand out from their background) is low — things may be hard to make out.'
+      : ' Contrast (how much your text/shapes stand out from their background) looks healthy — things should stand out clearly.';
 
   const compositionScore = clamp(10 - m.quadVariance * 220, 1, 10);
   const compositionNote =
     compositionScore >= 7
-      ? 'Visual weight is fairly balanced across the four quadrants.'
-      : 'Visual weight skews heavily toward one area — check if that\'s an intentional focal point or just imbalance.';
+      ? 'Composition (how the visual weight is spread across the frame) is fairly even across all four corners.'
+      : 'Composition (how the visual weight is spread across the frame) skews heavily toward one corner — check if that\'s on purpose or just imbalance.';
 
   const typographyScore = clamp((contrastScore + paletteScore) / 2, 1, 10);
   const typographyNote =
-    'This is a pixel heuristic, not OCR — it can\'t read actual letterforms. As a proxy: ' +
+    'We can\'t actually read your letters (this only looks at pixels, not text) — but as a stand-in: ' +
     (contrastScore >= 6
-      ? 'contrast looks sufficient for type to stay legible.'
-      : 'low contrast in places may hurt type legibility — double check by eye.');
+      ? 'contrast looks strong enough that type should stay readable.'
+      : 'contrast is a bit low in places, which can make small type hard to read — worth a second look by eye.');
 
   const overall =
     whitespaceScore * 0.3 +
@@ -337,13 +351,15 @@ export async function analyzeDesign(file, task) {
     typographyScore * 0.15;
 
   // Each dimension carries an easy, concrete fix — used to build the ranked
-  // "steps to improve" list below (worst dimension first).
+  // "steps to improve" list and per-dimension search keywords below (worst
+  // dimension first). Same scoring inputs every time -> same output every
+  // time: nothing here depends on randomness or hidden style preference.
   const dimensions = [
     {
       key: 'whitespace',
       score: whitespaceScore,
       pro: 'Whitespace and margins are working well — the layout has room to breathe.',
-      con: 'Whitespace/margins are cramped, which reads as unfinished.',
+      con: 'Whitespace/margins are cramped for this category, which reads as unfinished.',
       step: m.bleedingEdges.length
         ? `Add breathing room on the ${m.bleedingEdges.join(' and ')} edge${m.bleedingEdges.length > 1 ? 's' : ''} — pull content in until there's a clear gap from the frame border.`
         : 'Group related elements tighter together and add a bit more empty space between different groups — right now it reads as one dense block.',
@@ -365,9 +381,9 @@ export async function analyzeDesign(file, task) {
     {
       key: 'color',
       score: paletteScore,
-      pro: 'Cohesive, controlled color palette — it doesn\'t compete with itself.',
-      con: 'Too many competing colors are fighting for attention.',
-      step: 'Pick 2-3 main colors, then use everything else only as small accents — try deleting one color entirely and see if it still works.',
+      pro: 'Cohesive, controlled color palette for this category — it doesn\'t compete with itself.',
+      con: 'The number of colors is off-target for this category, competing for attention.',
+      step: `Pick ${targets.idealPaletteSize} main colors, then use everything else only as small accents — try deleting one color entirely and see if it still works.`,
     },
     {
       key: 'contrast',
@@ -384,9 +400,13 @@ export async function analyzeDesign(file, task) {
   if (!cons.length) cons.push('No major red flags from this pass.');
 
   const weakestFirst = [...dimensions].sort((a, b) => a.score - b.score);
-  const steps = weakestFirst.slice(0, 3).map((d, i) => `Step ${i + 1}: ${d.step}`);
+  const weakest3 = weakestFirst.slice(0, 3);
+  const steps = weakest3.map((d, i) => `Step ${i + 1}: ${d.step}`);
+  const keyword_ideas = weakest3.map((d) => ({
+    dimension: d.key,
+    keywords: searchKeywordsFor(d.key, categoryLabel),
+  }));
 
-  const categoryLabel = CATEGORY_LABELS[task?.category] || 'design';
   const visualResearch = buildVisualResearchLinks(
     categoryLabel,
     task?.tags,
@@ -396,9 +416,9 @@ export async function analyzeDesign(file, task) {
   return {
     overall_score: Math.round(overall * 10) / 10,
     summary:
-      'Reviewed against the fundamentals a design lead checks first: whitespace, ' +
-      'balance, palette control, and contrast — all measured directly from your file, ' +
-      'not guessed. It can\'t read actual type, so give typography a final look yourself.',
+      `Reviewed against what actually matters for a ${categoryLabel.toLowerCase()}: whitespace, ` +
+      'balance, color control, and contrast — all measured directly from your file, not guessed. ' +
+      'It can\'t read actual letters, so give typography a final look yourself.',
     whitespace: { score: whitespaceScore, notes: whitespaceNotesParts.join(' ') },
     research_and_reference: research,
     composition: compositionNote,
@@ -407,6 +427,7 @@ export async function analyzeDesign(file, task) {
     pros,
     cons,
     steps,
+    keyword_ideas,
     visual_research: visualResearch,
   };
 }

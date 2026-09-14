@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { CATEGORY_LABELS } from '../lib/taskTemplates.js';
 import { analyzeDesign } from '../lib/designAnalysis.js';
+import CritiqueCard from './CritiqueCard.jsx';
 
 function fileToDataUrl(file) {
   return new Promise((resolve, reject) => {
@@ -9,86 +10,6 @@ function fileToDataUrl(file) {
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
-}
-
-function CritiqueCard({ critique }) {
-  return (
-    <div className="critique-card">
-      <div className="critique-score">{critique.overall_score}/10</div>
-      <p className="critique-summary">{critique.summary}</p>
-
-      <div className="critique-section highlight">
-        <div className="critique-section-title">
-          Whitespace <span className="badge">{critique.whitespace.score}/10</span>
-        </div>
-        <p>{critique.whitespace.notes}</p>
-      </div>
-
-      <div className="critique-section highlight">
-        <div className="critique-section-title">
-          Research & reference <span className="badge">{critique.research_and_reference.score}/10</span>
-        </div>
-        <p>{critique.research_and_reference.notes}</p>
-      </div>
-
-      <div className="critique-section">
-        <div className="critique-section-title">Composition</div>
-        <p>{critique.composition}</p>
-      </div>
-      <div className="critique-section">
-        <div className="critique-section-title">Color</div>
-        <p>{critique.color}</p>
-      </div>
-      <div className="critique-section">
-        <div className="critique-section-title">Typography</div>
-        <p>{critique.typography}</p>
-      </div>
-
-      <div className="critique-columns">
-        <div>
-          <div className="critique-section-title">Pros</div>
-          <ul>
-            {critique.pros.map((s, i) => (
-              <li key={i}>{s}</li>
-            ))}
-          </ul>
-        </div>
-        <div>
-          <div className="critique-section-title">Cons</div>
-          <ul>
-            {critique.cons.map((s, i) => (
-              <li key={i}>{s}</li>
-            ))}
-          </ul>
-        </div>
-      </div>
-
-      <div className="critique-section steps-section">
-        <div className="critique-section-title">Steps to improve</div>
-        <ol className="steps-list">
-          {critique.steps.map((s, i) => (
-            <li key={i}>{s.replace(/^Step \d+:\s*/, '')}</li>
-          ))}
-        </ol>
-      </div>
-
-      <div className="critique-section">
-        <div className="critique-section-title">Visual research</div>
-        <p className="visual-research-hint">
-          Real search links, built from this task's category and tags — not fabricated results.
-        </p>
-        <ul className="visual-research-list">
-          {critique.visual_research.map((r, i) => (
-            <li key={i}>
-              <a href={r.url} target="_blank" rel="noreferrer">
-                {r.label}
-              </a>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </div>
-  );
 }
 
 export default function UploadTab({ tasks, onAddUpload }) {

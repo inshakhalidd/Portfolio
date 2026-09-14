@@ -27,6 +27,7 @@ export default function ChecklistItem({
   canMoveDown,
   taskTitle,
   taskCategory,
+  taskTags,
 }) {
   const [open, setOpen] = useState(subtask.type !== 'standard' && !subtask.done);
   const [titleDraft, setTitleDraft] = useState(subtask.title);
@@ -102,6 +103,7 @@ export default function ChecklistItem({
           onChange={onDataChange}
           taskTitle={taskTitle}
           category={taskCategory}
+          tags={taskTags}
         />
       )}
       {open && subtask.type === 'whitespace' && (

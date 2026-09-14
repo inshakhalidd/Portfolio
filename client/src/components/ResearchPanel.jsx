@@ -1,44 +1,21 @@
 import { useState } from 'react';
 import Icon from './Icon.jsx';
-import { extractBriefText } from '../lib/briefFile.js';
-import { API_BASE } from '../lib/apiBase.js';
 import { mergePackIntoResearchData } from '../lib/researchPack.js';
+import { useResearchRunner } from '../lib/useResearchRunner.js';
 
-function AutoResearch({ taskTitle, category, data, onChange }) {
+function AutoResearch({ taskTitle, category, tags, data, onChange }) {
   const [open, setOpen] = useState(false);
-  const [topic, setTopic] = useState(taskTitle || '');
-  const [brief, setBrief] = useState('');
-  const [file, setFile] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [lastPack, setLastPack] = useState(null);
+  const runner = useResearchRunner({ initialTopic: taskTitle || '' });
 
-  async function run(e) {
+  async function handleRun(e) {
     e.preventDefault();
-    setLoading(true);
-    setError(null);
-    setLastPack(null);
-    try {
-      let fileText = '';
-      if (file) fileText = await extractBriefText(file);
-      const combinedBrief = [brief.trim(), fileText.trim()].filter(Boolean).join('\n\n');
+    const freePack = await runner.run(category, tags);
+    if (freePack) onChange(mergePackIntoResearchData(data, freePack));
+  }
 
-      const res = await fetch(`${API_BASE}/api/auto-research`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic, brief: combinedBrief, category }),
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || 'Auto-research failed.');
-
-      const pack = json.pack;
-      onChange(mergePackIntoResearchData(data, pack));
-      setLastPack(pack);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
+  async function handleBoost() {
+    const boosted = await runner.boost(category);
+    if (boosted) onChange(mergePackIntoResearchData(data, boosted));
   }
 
   return (
@@ -53,13 +30,13 @@ function AutoResearch({ taskTitle, category, data, onChange }) {
       </button>
 
       {open && (
-        <form className="auto-research-form" onSubmit={run}>
+        <form className="auto-research-form" onSubmit={handleRun}>
           <label className="label small">Topic / brand</label>
           <input
             className="input"
             placeholder="e.g. GlowUp skincare"
-            value={topic}
-            onChange={(e) => setTopic(e.target.value)}
+            value={runner.topic}
+            onChange={(e) => runner.setTopic(e.target.value)}
           />
 
           <label className="label small">Short brief (optional)</label>
@@ -67,28 +44,43 @@ function AutoResearch({ taskTitle, category, data, onChange }) {
             className="textarea"
             rows={2}
             placeholder="Audience, tone, anything the brand outline should cover..."
-            value={brief}
-            onChange={(e) => setBrief(e.target.value)}
+            value={runner.brief}
+            onChange={(e) => runner.setBrief(e.target.value)}
           />
 
           <label className="label small">Or upload a brand outline/brief (.txt or .pdf)</label>
           <input
             type="file"
             accept=".txt,.pdf,text/plain,application/pdf"
-            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+            onChange={(e) => runner.setFile(e.target.files?.[0] ?? null)}
           />
 
           <button
             className="btn btn-primary"
             type="submit"
-            disabled={loading || (!topic.trim() && !brief.trim() && !file)}
+            disabled={runner.loading || (!runner.topic.trim() && !runner.brief.trim() && !runner.file)}
           >
-            {loading ? 'Researching...' : 'Run auto-research'}
+            {runner.loading ? 'Researching...' : 'Run research (free)'}
           </button>
-          {error && <div className="hint-warning">{error}</div>}
-          {lastPack && !error && (
+          {runner.error && <div className="hint-warning">{runner.error}</div>}
+
+          {runner.pack && (
             <div className="auto-research-success">
-              Added {lastPack.links?.length ?? 0} links and a keyword/palette summary to your notes below — edit freely.
+              <span className={`badge mode-badge mode-${runner.pack.mode}`}>
+                {runner.pack.mode === 'ai' ? 'AI-boosted' : 'Free research'}
+              </span>{' '}
+              Added to your notes below — edit freely.
+              {runner.pack.mode === 'free' && runner.aiAvailable && (
+                <button
+                  type="button"
+                  className="btn auto-research-boost"
+                  onClick={handleBoost}
+                  disabled={runner.boosting}
+                >
+                  <Icon name="sparkle" size={13} />
+                  {runner.boosting ? 'Boosting...' : 'Boost with AI'}
+                </button>
+              )}
             </div>
           )}
         </form>
@@ -97,7 +89,7 @@ function AutoResearch({ taskTitle, category, data, onChange }) {
   );
 }
 
-export default function ResearchPanel({ data, onChange, taskTitle, category }) {
+export default function ResearchPanel({ data, onChange, taskTitle, category, tags }) {
   const [linkDraft, setLinkDraft] = useState('');
 
   function addLink() {
@@ -133,7 +125,7 @@ export default function ResearchPanel({ data, onChange, taskTitle, category }) {
     <div className="subpanel research-panel">
       <div className="subpanel-title">Research</div>
 
-      <AutoResearch taskTitle={taskTitle} category={category} data={data} onChange={onChange} />
+      <AutoResearch taskTitle={taskTitle} category={category} tags={tags} data={data} onChange={onChange} />
 
       <label className="label small">Reference links</label>
       <div className="link-row">

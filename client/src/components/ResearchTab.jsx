@@ -1,12 +1,31 @@
 import { useState } from 'react';
 import { CATEGORY_LABELS, CLIENT_TAGS, detectCategory } from '../lib/taskTemplates.js';
-import { extractBriefText } from '../lib/briefFile.js';
-import { API_BASE } from '../lib/apiBase.js';
+import { useResearchRunner } from '../lib/useResearchRunner.js';
 import Icon from './Icon.jsx';
 
 function Moodboard({ pack }) {
   return (
     <div className="moodboard">
+      <div className="moodboard-section">
+        <span className={`badge mode-badge mode-${pack.mode}`}>
+          {pack.mode === 'ai' ? 'AI-boosted' : 'Free research'}
+        </span>
+      </div>
+
+      {pack.audience_note && (
+        <div className="moodboard-section">
+          <div className="critique-section-title">Who this needs to catch</div>
+          <p className="moodboard-prose">{pack.audience_note}</p>
+        </div>
+      )}
+
+      {pack.positioning_angle && (
+        <div className="moodboard-section">
+          <div className="critique-section-title">Positioning angle</div>
+          <p className="moodboard-prose">{pack.positioning_angle}</p>
+        </div>
+      )}
+
       <div className="moodboard-section">
         <div className="critique-section-title">Palette</div>
         <div className="palette-row">
@@ -48,22 +67,17 @@ function Moodboard({ pack }) {
 }
 
 export default function ResearchTab({ tasks, onCreateTask, onAttachToTask }) {
-  const [topic, setTopic] = useState('');
   const [category, setCategory] = useState('general');
   const [categoryTouched, setCategoryTouched] = useState(false);
   const [tags, setTags] = useState([]);
-  const [brief, setBrief] = useState('');
-  const [file, setFile] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [pack, setPack] = useState(null);
   const [attachTaskId, setAttachTaskId] = useState('');
   const [actionMessage, setActionMessage] = useState(null);
+  const runner = useResearchRunner({});
 
   const tasksWithResearch = tasks.filter((t) => t.subtasks.some((s) => s.type === 'research'));
 
   function handleTopicChange(value) {
-    setTopic(value);
+    runner.setTopic(value);
     if (!categoryTouched && value.trim()) {
       setCategory(detectCategory(value));
     }
@@ -75,39 +89,24 @@ export default function ResearchTab({ tasks, onCreateTask, onAttachToTask }) {
 
   async function run(e) {
     e.preventDefault();
-    setLoading(true);
-    setError(null);
-    setPack(null);
     setActionMessage(null);
-    try {
-      let fileText = '';
-      if (file) fileText = await extractBriefText(file);
-      const combinedBrief = [brief.trim(), fileText.trim()].filter(Boolean).join('\n\n');
+    await runner.run(category, tags);
+  }
 
-      const res = await fetch(`${API_BASE}/api/auto-research`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic, brief: combinedBrief, category }),
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || 'Research failed.');
-      setPack(json.pack);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
+  async function boost() {
+    setActionMessage(null);
+    await runner.boost(category);
   }
 
   function createTask() {
-    const title = topic.trim() || `${CATEGORY_LABELS[category]} research`;
-    onCreateTask(title, category, tags, pack);
+    const title = runner.topic.trim() || `${CATEGORY_LABELS[category]} research`;
+    onCreateTask(title, category, tags, runner.pack);
     setActionMessage(`Created "${title}" with this research pre-filled into its Research step.`);
   }
 
   function attachToTask() {
     if (!attachTaskId) return;
-    onAttachToTask(attachTaskId, pack);
+    onAttachToTask(attachTaskId, runner.pack);
     const task = tasks.find((t) => t.id === attachTaskId);
     setActionMessage(`Added this research to "${task?.title}"'s Research step.`);
   }
@@ -122,7 +121,7 @@ export default function ResearchTab({ tasks, onCreateTask, onAttachToTask }) {
           <input
             className="input"
             placeholder='e.g. "GlowUp skincare Instagram launch"'
-            value={topic}
+            value={runner.topic}
             onChange={(e) => handleTopicChange(e.target.value)}
           />
 
@@ -161,31 +160,43 @@ export default function ResearchTab({ tasks, onCreateTask, onAttachToTask }) {
             className="textarea"
             rows={3}
             placeholder="Audience, tone, goals, anything relevant..."
-            value={brief}
-            onChange={(e) => setBrief(e.target.value)}
+            value={runner.brief}
+            onChange={(e) => runner.setBrief(e.target.value)}
           />
 
           <label className="label small">Or upload a brief (.txt or .pdf)</label>
           <input
             type="file"
             accept=".txt,.pdf,text/plain,application/pdf"
-            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+            onChange={(e) => runner.setFile(e.target.files?.[0] ?? null)}
           />
 
           <button
             className="btn btn-primary"
             type="submit"
-            disabled={loading || (!topic.trim() && !brief.trim() && !file)}
+            disabled={runner.loading || (!runner.topic.trim() && !runner.brief.trim() && !runner.file)}
           >
-            {loading ? 'Researching...' : 'Run research'}
+            {runner.loading ? 'Researching...' : 'Run research (free)'}
           </button>
-          {error && <div className="hint-warning">{error}</div>}
+          {runner.error && <div className="hint-warning">{runner.error}</div>}
+
+          {runner.pack?.mode === 'free' && runner.aiAvailable && (
+            <button
+              type="button"
+              className="btn auto-research-boost full-width"
+              onClick={boost}
+              disabled={runner.boosting}
+            >
+              <Icon name="sparkle" size={13} />
+              {runner.boosting ? 'Boosting...' : 'Boost with AI'}
+            </button>
+          )}
         </form>
 
         <div className="upload-result">
-          {pack ? (
+          {runner.pack ? (
             <div className="critique-card">
-              <Moodboard pack={pack} />
+              <Moodboard pack={runner.pack} />
 
               <div className="research-actions">
                 <button className="btn btn-primary" onClick={createTask}>
@@ -220,8 +231,9 @@ export default function ResearchTab({ tasks, onCreateTask, onAttachToTask }) {
             </div>
           ) : (
             <div className="empty-state">
-              Describe a design idea or brand outline to get reference links, moodboard
-              keywords, and a starting color palette.
+              Describe a design idea or brand outline to get an audience note, positioning
+              angle, reference links, moodboard keywords, and a starting color palette —
+              instantly, for free.
             </div>
           )}
         </div>
