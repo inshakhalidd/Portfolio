@@ -2,15 +2,19 @@
 
 A task-tracking app for design work: break a high-level task ("make portfolio",
 "design Instagram posts for GlowUp") into an ordered subtask checklist, work
-through it one step at a time, and get feedback on uploaded designs.
+through it one step at a time, research before you design, and get feedback
+on uploaded designs — all free by default, with an optional AI boost layered
+on top where it genuinely adds value.
 
 ## Structure
 
-- `client/` — React + Vite single-page app (tasks, dashboard, upload, gallery).
-  Runs standalone — everything except auto-research works with no backend.
-- `server/` — a small Express server with a single endpoint,
-  `/api/auto-research`, used only by the optional auto-research feature (see
-  below). Not required for the rest of the app.
+- `client/` — React + Vite single-page app (Home, Tasks, Research, Dashboard,
+  Upload, Gallery). Fully functional standalone — every feature works with
+  zero backend and zero API key.
+- `server/` — a small Express server with one endpoint, `/api/auto-research`,
+  used only by the optional "Boost with AI" upgrade (see Research below).
+  Never required — the app detects whether a key is configured and hides the
+  boost option otherwise.
 
 ## Setup
 
@@ -20,63 +24,68 @@ npm run dev
 ```
 
 Open http://localhost:5173. This starts both the client and the server; the
-server runs fine with no API key — only the auto-research button needs one
-(see below).
+server runs fine with no API key — only the "Boost with AI" buttons need one.
 
 ## Features
 
-1. **Task input + auto checklist** — click **+ Add Task**, type a task, the
-   app detects a category (portfolio / social post / brand identity /
-   general) and generates an ordered subtask checklist. Edit, reorder, add,
-   or delete subtasks freely.
-2. **Research & whitespace as first-class steps** — these subtask types open
+1. **Home** — a dashboard-style landing page: task/completion/rating stats,
+   your in-progress tasks, a "start with research" prompt, and your latest
+   critique.
+2. **Task input + auto checklist** — click **Add task**, type a task, the app
+   detects a category (portfolio / social post / brand identity / general)
+   and generates an ordered subtask checklist. Edit, reorder, add, or delete
+   subtasks freely.
+3. **Research & whitespace as first-class steps** — these subtask types open
    a structured sub-panel (reference links/notes/images for research; a
-   margins/breathing-room/grouping checklist for whitespace) and can't be
-   checked off empty.
-3. **Ordered checklist** — subtasks lock until the previous ones are done;
+   spacing checklist for whitespace) and can't be checked off empty.
+4. **Ordered checklist** — subtasks lock until the previous ones are done;
    progress bar per task.
-4. **Auto-research assistant** — on the Research sub-panel, click
-   **Auto-research**, give it a topic/brand name and/or a short brief (or
-   upload a `.txt`/`.pdf` brand outline — parsed client-side), and it calls
-   Claude with the web search tool to find real reference links, 4-6
-   moodboard keywords, and a suggested hex palette with reasoning. Results
-   merge into the existing Reference Links + Notes fields — nothing is
-   locked, edit or delete anything it adds. **Requires `ANTHROPIC_API_KEY`**
-   in `server/.env` (copy `server/.env.example`) — without one, the button
-   shows a clear error and everything else in the app still works.
-5. **Research tab** — the same research engine as a standalone tab: describe
-   a design idea or brand outline (or upload a brief) before any task exists,
-   and get a visual moodboard — color palette swatches, keyword chips, and
-   reference links. Then either **create a new task** pre-filled with that
-   research, or **attach it to an existing task's** Research step. Same
-   `ANTHROPIC_API_KEY` requirement as auto-research above.
-6. **Upload + rating** — upload a PNG/JPG tied to a task and get a structured
-   critique card (score, pros/cons, numbered "steps to improve", and real
-   Pinterest/Dribbble/Behance research links). Rating runs entirely in the
-   browser via `client/src/lib/designAnalysis.js`, **no API key needed**:
-   - **Whitespace/margins/grouping** are measured directly from the image's
-     pixels (background-color estimation, margin-band bleed detection, gap
-     analysis) — genuinely computed, not guessed.
+5. **Research, free by default** — both the per-task Auto-research control
+   and the standalone **Research** tab run a rule-based engine entirely in
+   the browser, instantly, with no network call: a plain-language audience
+   note, a positioning angle, a category+tag-matched color palette, keywords,
+   and real Pinterest/Dribbble/Behance/Fonts In Use/Are.na search links (real
+   search pages, never fabricated results). From the Research tab you can
+   **create a new task** pre-filled with that research, or **attach it** to
+   an existing task's Research step.
+   - **Optional AI boost**: if `ANTHROPIC_API_KEY` is set in `server/.env`
+     (copy `server/.env.example`), a "Boost with AI" button appears that
+     sharpens the same pack via Claude + the web search tool. Every result is
+     labeled **Free research** or **AI-boosted** so you always know which
+     produced it. Without a key, the button simply doesn't appear — the free
+     tier is never a degraded fallback.
+6. **Upload + rating, category-aware and free** — upload a PNG/JPG tied to a
+   task and get a structured critique, entirely local
+   (`client/src/lib/designAnalysis.js`), no API key, no cost:
+   - **Whitespace/margins/grouping**, **composition**, and **color** are
+     measured directly from the image's pixels and judged against norms for
+     the task's actual category (a social post is judged denser/punchier than
+     a portfolio piece; a brand identity file is held to stricter palette
+     discipline) — same pixel math for every category, different target.
    - **Research & reference** is scored from the actual research subtask data
-     on the linked task (notes length, link count, pinned reference images) —
-     so it reflects your real process, not the image.
-   - **Composition/color/typography** are lighter heuristics (quadrant
-     balance, dominant-color clustering, luminance contrast) — a rough
-     sanity check, not real visual understanding.
-7. **Dashboard** — tinted stat cards (active/completed tasks, avg. rating)
-   with sparklines and week-over-week % change, a weekly-completions bar
-   chart, and a completion-rate donut.
-8. **Gallery** — all uploaded designs, filterable by category/tag, searchable
-   by task/filename. Cards and tag pills are color-tinted by client category
-   (wellness = blue, beauty/skincare = pink, portfolio = lavender,
-   food/snacks = green).
+     on the linked task, so it reflects your real process, not the image.
+   - Every note is plain language, with quick explainers for any jargon
+     ("contrast (how much your text stands out from its background)").
+   - Output includes **pros/cons**, numbered **steps to improve**, per-weak-
+     dimension **search keywords** to paste into Pinterest/Google/Dribbble,
+     and real **visual research** links — all free, all deterministic (same
+     image + category always scores the same).
+7. **Dashboard** — tinted stat cards with sparklines and week-over-week %
+   change, a weekly-completions bar chart, and a completion-rate donut with
+   legend.
+8. **Gallery** — every uploaded design, filterable by category/tag chips,
+   searchable by task/filename, cards tinted by client category. Click a card
+   to open its full critique in a modal, with a **Go to task** button that
+   jumps straight to the linked task.
+9. **Light/dark theme** — toggle in the header. Not persisted on purpose —
+   every reload starts fresh in dark mode.
 
 Data (tasks, subtasks, uploads) persists to `localStorage` in the browser.
 
 ## Deploying it live (not as an Artifact)
 
 This is a real two-part app (a static frontend + a small backend for the
-auto-research feature), so it needs actual hosting rather than a
+optional AI-boost feature), so it needs actual hosting rather than a
 single-file preview. `render.yaml` in the repo root is a ready-to-use
 [Render](https://render.com) Blueprint that deploys both pieces together:
 
@@ -85,20 +94,21 @@ single-file preview. `render.yaml` in the repo root is a ready-to-use
 3. Connect this repo (`inshakhalidd/Portfolio`) and pick the branch.
 4. Render reads `render.yaml` and proposes two services:
    - `studio-tracker-web` — static site (the React app)
-   - `studio-tracker-api` — the Express server (only used for auto-research)
+   - `studio-tracker-api` — the Express server (only used for the AI boost)
 5. Before deploying, set the `ANTHROPIC_API_KEY` env var on
    `studio-tracker-api` in the Render dashboard (Blueprint intentionally
-   leaves it blank — never commit a key). Skip it if you don't want
-   auto-research live; the rest of the app works fine without it.
+   leaves it blank — never commit a key). Skip it entirely if you don't want
+   the AI boost live; every other feature works fully without it.
 6. Click **Apply** — Render builds and deploys both services, and wires the
    frontend's `VITE_API_URL` to the backend's URL automatically.
 
 Free-tier note: Render's free web services spin down after inactivity, so
-the first auto-research request after a quiet period may take ~30s to wake
-the server. The static site has no such cold start.
+the first AI-boost request after a quiet period may take ~30s to wake the
+server. The static site has no such cold start, and nothing else in the app
+touches the backend at all.
 
 **Other platforms:** the same repo works on Vercel, Netlify, or Railway —
 just point them at `client/` for a static build (`npm run build`, output
-`dist/`) and, if you want auto-research, `server/` as a separate Node
-service (`npm start`, with `ANTHROPIC_API_KEY` set) — then set
-`VITE_API_URL` on the frontend to the backend's deployed URL.
+`dist/`) and, if you want the AI boost, `server/` as a separate Node service
+(`npm start`, with `ANTHROPIC_API_KEY` set) — then set `VITE_API_URL` on the
+frontend to the backend's deployed URL.
