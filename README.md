@@ -112,3 +112,43 @@ just point them at `client/` for a static build (`npm run build`, output
 `dist/`) and, if you want the AI boost, `server/` as a separate Node service
 (`npm start`, with `ANTHROPIC_API_KEY` set) — then set `VITE_API_URL` on the
 frontend to the backend's deployed URL.
+
+### Free forever, no credit card: Vercel + Supabase
+
+Both Vercel's Hobby plan and Supabase's Free plan work with no card on file,
+no trial period, no spend risk. `supabase/functions/api/index.ts` is a
+ready-to-use Edge Function — the exact same logic as `server/index.js`, just
+running on Deno instead of Node — for anyone who'd rather use Supabase than
+Render for the optional AI-boost backend.
+
+**1. Frontend on Vercel** (does everything except the AI boost — nothing else needs Supabase):
+
+1. Go to [vercel.com/new](https://vercel.com/new), sign in with GitHub, import `inshakhalidd/Portfolio`.
+2. Set **Root Directory** to `client`. Vercel auto-detects the Vite framework preset (build `npm run build`, output `dist`) — no other config needed.
+3. Click **Deploy**. You'll get a URL like `https://portfolio-xyz.vercel.app` in under a minute.
+
+That alone gives you the full app — task checklists, the free research
+engine, the free category-aware rating, dashboard, gallery, theme toggle —
+with zero backend at all.
+
+**2. Optional: Supabase for the AI boost** (skip this if you don't want it):
+
+1. Go to [supabase.com/dashboard](https://supabase.com/dashboard) → **New project** (free tier).
+2. Install the [Supabase CLI](https://supabase.com/docs/guides/cli) locally, then from the repo root:
+   ```bash
+   supabase login
+   supabase link --project-ref <your-project-ref>
+   supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
+   supabase functions deploy api --no-verify-jwt
+   ```
+   (`--no-verify-jwt` is required — the client calls this function without a
+   Supabase auth token.)
+3. Your function is now live at
+   `https://<project-ref>.supabase.co/functions/v1/api`.
+4. Back in Vercel → your project → **Settings → Environment Variables**, add
+   `VITE_API_URL` = `https://<project-ref>.supabase.co/functions/v1`, then
+   redeploy (Vercel → Deployments → ⋯ → Redeploy) so the build picks it up.
+
+Both platforms' free tiers have no cold-start spin-down the way Render's
+does — Vercel serves the static site instantly, and Supabase Edge Functions
+start in milliseconds.
