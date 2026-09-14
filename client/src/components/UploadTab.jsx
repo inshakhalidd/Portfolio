@@ -56,11 +56,29 @@ export default function UploadTab({ tasks, onAddUpload }) {
   }
 
   return (
-    <div className="upload-tab-page">
-      <h1 className="page-title">Upload</h1>
-      <div className="upload-tab">
-      <form className="upload-form" onSubmit={submit}>
-        <label className="label">Task</label>
+    <div className="upload-tab animate-in">
+      <form className="panel-card upload-form" onSubmit={submit}>
+        <label className="dropzone" style={preview ? { padding: 12 } : {}}>
+          <input
+            type="file"
+            accept="image/png,image/jpeg"
+            style={{ display: 'none' }}
+            onChange={(e) => handleFile(e.target.files?.[0] ?? null)}
+          />
+          {preview ? (
+            <div className="upload-preview">
+              <img src={preview} alt="preview" />
+            </div>
+          ) : (
+            <div className="dropzone-empty">
+              <span className="dropzone-title">Drop a design or click to browse</span>
+              <span className="dropzone-sub mono">PNG · JPG</span>
+            </div>
+          )}
+        </label>
+        <span className="upload-filename">{file ? file.name : 'No file selected yet.'}</span>
+
+        <label className="label">Belongs to task</label>
         <select className="select" value={taskId} onChange={(e) => setTaskId(e.target.value)}>
           <option value="">— none —</option>
           {tasks.map((t) => (
@@ -70,23 +88,12 @@ export default function UploadTab({ tasks, onAddUpload }) {
           ))}
         </select>
 
-        <label className="label">Design file (PNG/JPG)</label>
-        <input
-          type="file"
-          accept="image/png,image/jpeg"
-          onChange={(e) => handleFile(e.target.files?.[0] ?? null)}
-        />
-
-        {preview && (
-          <div className="upload-preview">
-            <img src={preview} alt="preview" />
-          </div>
-        )}
-
         <button className="btn btn-primary" type="submit" disabled={!file || loading}>
-          {loading ? 'Analyzing...' : 'Rate this design'}
+          {loading ? 'Analysing…' : 'Run critique'}
         </button>
-        {error && <div className="hint-warning">{error}</div>}
+        <span className="research-status">
+          {error || 'Scored locally against the five criteria in your checklist — free, no API key.'}
+        </span>
       </form>
 
       <div className="upload-result">
@@ -95,7 +102,6 @@ export default function UploadTab({ tasks, onAddUpload }) {
         ) : (
           <div className="empty-state">Upload a design to get free, local structured feedback.</div>
         )}
-      </div>
       </div>
     </div>
   );

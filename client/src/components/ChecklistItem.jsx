@@ -44,19 +44,24 @@ export default function ChecklistItem({
     onToggle(!subtask.done);
   }
 
+  const boxClass = subtask.done ? 'done' : locked ? 'locked' : '';
+
   return (
-    <li className={`checklist-item ${subtask.done ? 'done' : ''} ${locked ? 'locked' : ''}`}>
-      <div className="checklist-item-row">
-        <input
-          type="checkbox"
-          checked={subtask.done}
+    <div className="step-row-wrap">
+      <div className={`step-row ${open ? 'expanded' : ''} ${locked ? 'locked' : ''} ${subtask.done ? 'done' : ''}`}>
+        <button
+          type="button"
+          className={`step-box ${boxClass}`}
           disabled={locked}
-          onChange={handleToggle}
+          onClick={handleToggle}
           title={locked ? 'Complete previous steps first' : ''}
-        />
+        >
+          {subtask.done ? '✓' : ''}
+        </button>
+
         {isEditing ? (
           <input
-            className="input inline-edit"
+            className="input"
             value={titleDraft}
             onChange={(e) => setTitleDraft(e.target.value)}
             onBlur={() => onRename(titleDraft)}
@@ -64,37 +69,37 @@ export default function ChecklistItem({
             autoFocus
           />
         ) : (
-          <span className="checklist-item-title" onClick={() => hasPanel && setOpen(!open)}>
-            {subtask.title}
-            {subtask.type === 'research' && <span className="type-tag">research</span>}
-            {subtask.type === 'whitespace' && <span className="type-tag">whitespace</span>}
-          </span>
+          <div className="step-body" onClick={() => hasPanel && setOpen(!open)}>
+            <span className={`step-title ${subtask.done ? 'done' : ''}`}>{subtask.title}</span>
+          </div>
         )}
 
-        <div className="checklist-item-actions">
-          {canMoveUp && (
-            <button className="icon-btn" onClick={() => onMove(-1)} title="Move up">
-              ↑
-            </button>
-          )}
-          {canMoveDown && (
-            <button className="icon-btn" onClick={() => onMove(1)} title="Move down">
-              ↓
-            </button>
-          )}
-          {hasPanel && (
-            <button className="icon-btn" onClick={() => setOpen(!open)} title="Toggle detail">
-              {open ? '▾' : '▸'}
-            </button>
-          )}
-          <button className="icon-btn" onClick={onDelete} title="Delete subtask">
-            ×
+        {locked && <span className="step-badge locked">locked</span>}
+        {!locked && subtask.type === 'research' && <span className="step-badge">research</span>}
+        {!locked && subtask.type === 'whitespace' && <span className="step-badge">whitespace</span>}
+
+        {canMoveUp && (
+          <button className="icon-btn" onClick={() => onMove(-1)} title="Move up">
+            ↑
           </button>
-        </div>
+        )}
+        {canMoveDown && (
+          <button className="icon-btn" onClick={() => onMove(1)} title="Move down">
+            ↓
+          </button>
+        )}
+        {hasPanel && (
+          <button type="button" className="step-toggle-btn" onClick={() => setOpen(!open)}>
+            {open ? 'Hide' : 'Open'}
+          </button>
+        )}
+        <button className="icon-btn" onClick={onDelete} title="Delete subtask">
+          ×
+        </button>
       </div>
 
       {blocked && !subtask.done && !locked && (
-        <div className="hint-warning inline">Fill this in before checking it off.</div>
+        <div className="hint-warning">Fill this in before checking it off.</div>
       )}
 
       {open && subtask.type === 'research' && (
@@ -109,6 +114,6 @@ export default function ChecklistItem({
       {open && subtask.type === 'whitespace' && (
         <WhitespacePanel data={subtask.data} onChange={onDataChange} />
       )}
-    </li>
+    </div>
   );
 }

@@ -1,12 +1,15 @@
 import { useMemo, useState } from 'react';
 import { CATEGORY_LABELS } from '../lib/taskTemplates.js';
-import { tintForTags } from '../lib/tagTint.js';
-import Icon from './Icon.jsx';
+import { categorySoftVar, tintKeyForTags } from '../lib/categoryColors.js';
+import CategoryPill from './CategoryPill.jsx';
+import CritiqueCard from './CritiqueCard.jsx';
+import Modal from './Modal.jsx';
 
-export default function Gallery({ tasks, uploads }) {
+export default function Gallery({ tasks, uploads, onGoToTask }) {
   const [query, setQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [tagFilter, setTagFilter] = useState('all');
+  const [openId, setOpenId] = useState(null);
 
   const taskById = useMemo(() => Object.fromEntries(tasks.map((t) => [t.id, t])), [tasks]);
 
@@ -25,36 +28,56 @@ export default function Gallery({ tasks, uploads }) {
     return true;
   });
 
-  return (
-    <div className="gallery">
-      <h1 className="page-title">Gallery</h1>
+  const openUpload = openId ? uploads.find((u) => u.id === openId) : null;
+  const openTask = openUpload ? taskById[openUpload.taskId] : null;
 
-      <div className="gallery-controls">
-        <div className="topbar-search gallery-search">
-          <Icon name="search" size={16} />
-          <input
-            className="topbar-search-input"
-            placeholder="Search by task or filename..."
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-        </div>
-        <select className="select" value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
-          <option value="all">All categories</option>
+  return (
+    <div className="gallery-page animate-in">
+      <div className="gallery-toolbar">
+        <input
+          className="input gallery-search-input"
+          placeholder="Search task or filename…"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+        <div className="gallery-filter-group">
+          <button
+            className={`chip ${categoryFilter === 'all' ? 'chip-active' : ''}`}
+            onClick={() => setCategoryFilter('all')}
+          >
+            All categories
+          </button>
           {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
-            <option key={key} value={key}>
+            <button
+              key={key}
+              className={`chip ${categoryFilter === key ? 'chip-active' : ''}`}
+              onClick={() => setCategoryFilter(key)}
+            >
               {label}
-            </option>
+            </button>
           ))}
-        </select>
-        <select className="select" value={tagFilter} onChange={(e) => setTagFilter(e.target.value)}>
-          <option value="all">All tags</option>
+        </div>
+        <div className="gallery-filter-group">
+          <button
+            className={`chip ${tagFilter === 'all' ? 'chip-active' : ''}`}
+            onClick={() => setTagFilter('all')}
+          >
+            All tags
+          </button>
           {allTags.map((tag) => (
-            <option key={tag} value={tag}>
-              {tag.replace('_', ' ')}
-            </option>
+            <button
+              key={tag}
+              className={`chip ${tagFilter === tag ? 'chip-active' : ''}`}
+              onClick={() => setTagFilter(tag)}
+            >
+              #{tag.replace('_', ' ')}
+            </button>
           ))}
-        </select>
+        </div>
+        <span className="gallery-spacer" />
+        <span className="gallery-count mono">
+          {filtered.length} of {uploads.length}
+        </span>
       </div>
 
       {filtered.length === 0 ? (
@@ -63,30 +86,49 @@ export default function Gallery({ tasks, uploads }) {
         <div className="gallery-grid">
           {filtered.map((u) => {
             const task = taskById[u.taskId];
-            const tint = tintForTags(u.tags);
+            const tintKey = tintKeyForTags(u.tags);
             return (
-              <div className="gallery-card" key={u.id}>
-                <div className={`gallery-thumb tint-${tint}`}>
+              <div className="gallery-card" key={u.id} onClick={() => setOpenId(u.id)}>
+                <div className="gallery-thumb" style={{ background: categorySoftVar(tintKey) }}>
                   <img src={u.dataUrl} alt={u.filename} />
                 </div>
                 <div className="gallery-card-body">
-                  <div className="gallery-card-title">{task?.title || u.filename}</div>
-                  <div className="task-meta">
-                    <span className="badge">{CATEGORY_LABELS[u.category] || u.category}</span>
-                    {(u.tags || []).map((tag) => (
-                      <span className={`badge tag-pill tint-${tintForTags([tag])}`} key={tag}>
-                        {tag.replace('_', ' ')}
-                      </span>
-                    ))}
+                  <span className="gallery-card-title">{task?.title || u.filename}</span>
+                  <div className="gallery-card-meta-row">
+                    <CategoryPill tintKey={u.category} label={CATEGORY_LABELS[u.category] || u.category} />
+                    <span className="gallery-spacer" />
+                    <span className="gallery-card-score mono">
+                      {u.critique ? `${u.critique.overall_score}/10` : '—'}
+                    </span>
                   </div>
-                  {u.critique && (
-                    <div className="gallery-card-score">{u.critique.overall_score}/10</div>
-                  )}
                 </div>
               </div>
             );
           })}
         </div>
+      )}
+
+      {openUpload && (
+        <Modal title={openTask?.title || openUpload.filename} onClose={() => setOpenId(null)}>
+          {openUpload.critique ? (
+            <>
+              <CritiqueCard critique={openUpload.critique} />
+              {openTask && (
+                <button
+                  className="btn btn-primary modal-goto-task"
+                  onClick={() => {
+                    setOpenId(null);
+                    onGoToTask(openTask.id);
+                  }}
+                >
+                  Go to task
+                </button>
+              )}
+            </>
+          ) : (
+            <div className="empty-state small">No critique recorded for this upload.</div>
+          )}
+        </Modal>
       )}
     </div>
   );

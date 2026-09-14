@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import ChecklistItem from './ChecklistItem.jsx';
+import CategoryPill from './CategoryPill.jsx';
 import { CATEGORY_LABELS, newSubtask } from '../lib/taskTemplates.js';
 
 export default function TaskDetail({ task, onUpdate }) {
@@ -58,27 +59,30 @@ export default function TaskDetail({ task, onUpdate }) {
   }
 
   return (
-    <div className="task-detail">
-      <div className="task-detail-header">
-        <h2>{task.title}</h2>
-        <div className="task-meta">
-          <span className="badge">{CATEGORY_LABELS[task.category]}</span>
-          {task.tags?.map((tag) => (
-            <span className="badge" key={tag}>
-              {tag.replace('_', ' ')}
+    <>
+      <div className="task-detail-head">
+        <div className="task-detail-title-row">
+          <div className="task-detail-title-col">
+            <h2 className="task-detail-title">{task.title}</h2>
+            <span className="task-detail-meta">
+              {task.tags?.length ? task.tags.map((t) => t.replace('_', ' ')).join(', ') : 'No client tags'}
+              {task.completedAt ? ' · completed' : ''}
             </span>
-          ))}
-          {task.completedAt && <span className="badge badge-done">completed</span>}
+          </div>
+          <div className="header-spacer" />
+          <CategoryPill tintKey={task.category} label={CATEGORY_LABELS[task.category]} />
         </div>
-        <div className="progress-bar large">
-          <div className="progress-fill" style={{ width: `${pct}%` }} />
-        </div>
-        <div className="progress-label">
-          {doneCount} / {task.subtasks.length} steps done
+        <div className="task-detail-progress-row">
+          <div className="progress-bar large">
+            <div className="progress-fill" style={{ width: `${pct}%` }} />
+          </div>
+          <span className="task-detail-steplabel mono">
+            {doneCount}/{task.subtasks.length} steps
+          </span>
         </div>
       </div>
 
-      <ul className="checklist">
+      <div className="checklist">
         {task.subtasks.map((subtask, idx) => {
           const previousAllDone = task.subtasks.slice(0, idx).every((s) => s.done);
           const locked = !subtask.done && !previousAllDone;
@@ -102,7 +106,7 @@ export default function TaskDetail({ task, onUpdate }) {
             />
           );
         })}
-      </ul>
+      </div>
 
       <form className="add-subtask-form" onSubmit={addSubtask}>
         <input
@@ -120,6 +124,6 @@ export default function TaskDetail({ task, onUpdate }) {
           Add
         </button>
       </form>
-    </div>
+    </>
   );
 }

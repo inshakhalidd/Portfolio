@@ -1,33 +1,35 @@
-import Icon from './Icon.jsx';
+const PAGE_META = {
+  Home: { sub: 'Your studio at a glance' },
+  Tasks: { sub: 'Steps unlock in order' },
+  Research: { sub: 'Moodboard builder' },
+  Dashboard: { sub: 'Last 8 weeks' },
+  Upload: { sub: 'Get a structured critique' },
+  Gallery: { sub: 'Every design you have uploaded' },
+};
 
-const dateFormatter = new Intl.DateTimeFormat(undefined, {
-  weekday: 'long',
-  month: 'long',
-  day: 'numeric',
-});
+function greetingTitle() {
+  const hour = new Date().getHours();
+  const part = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+  return `${part}, Insha`;
+}
 
-export default function TopBar({ search, onSearchChange, onAddTask }) {
+export default function TopBar({ tab, theme, onToggleTheme, onAddTask }) {
+  const title = tab === 'Home' ? greetingTitle() : tab;
+  const sub = PAGE_META[tab]?.sub || '';
+
   return (
-    <header className="topbar">
-      <div className="topbar-date">{dateFormatter.format(new Date())}</div>
-
-      <div className="topbar-search">
-        <Icon name="search" size={16} />
-        <input
-          className="topbar-search-input"
-          placeholder="Search tasks..."
-          value={search}
-          onChange={(e) => onSearchChange(e.target.value)}
-        />
+    <header className="header">
+      <div className="header-titles">
+        <h1 className="header-title">{title}</h1>
+        <span className="header-sub">{sub}</span>
       </div>
-
-      <button className="icon-round-btn" aria-label="Notifications" title="Notifications">
-        <Icon name="bell" size={18} />
+      <div className="header-spacer" />
+      <button className="theme-toggle" onClick={onToggleTheme}>
+        <span className="theme-toggle-knob" />
+        <span>{theme === 'dark' ? 'Dark' : 'Light'}</span>
       </button>
-
-      <button className="btn btn-primary add-task-btn" onClick={onAddTask}>
-        <Icon name="plus" size={16} />
-        Add Task
+      <button className="btn btn-primary" onClick={onAddTask}>
+        Add task
       </button>
     </header>
   );

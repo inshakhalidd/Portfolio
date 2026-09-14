@@ -1,105 +1,44 @@
-import { CATEGORY_LABELS } from '../lib/taskTemplates.js';
 import { weeklyCounts, weeklyAverages, lastChangePct } from '../lib/timeseries.js';
-import Icon from './Icon.jsx';
 
-function taskProgress(task) {
-  if (!task.subtasks.length) return 0;
-  return Math.round((task.subtasks.filter((s) => s.done).length / task.subtasks.length) * 100);
-}
-
-function Sparkline({ data, max, tint }) {
+function sparklinePoints(values, max) {
   const safeMax = max > 0 ? max : 1;
+  const n = values.length;
+  if (n < 2) return '';
+  return values
+    .map((v, i) => {
+      const x = (i / (n - 1)) * 100;
+      const y = 30 - (Math.max(0, v) / safeMax) * 28;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(' ');
+}
+
+function Sparkline({ values, max, colorVar }) {
   return (
-    <div className={`sparkline sparkline-${tint}`}>
-      {data.map((d, i) => (
-        <div
-          key={i}
-          className="sparkline-bar"
-          style={{ height: `${Math.max(6, ((d.count ?? d.value ?? 0) / safeMax) * 100)}%` }}
-        />
-      ))}
-    </div>
+    <svg viewBox="0 0 100 32" preserveAspectRatio="none" className="stat-sparkline">
+      <polyline
+        points={sparklinePoints(values, max)}
+        fill="none"
+        stroke={`var(${colorVar})`}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }
 
-function ChangeBadge({ pct }) {
-  if (pct === null) return <span className="change-badge neutral">—</span>;
-  const up = pct >= 0;
+function TintStatCard({ bg, border, labelColor, label, value, values, max, colorVar, delta, deltaClass }) {
   return (
-    <span className={`change-badge ${up ? 'up' : 'down'}`}>
-      {up ? '+' : ''}
-      {pct.toFixed(0)}%
-    </span>
-  );
-}
-
-function StatCard({ tint, label, value, sparklineData, sparklineMax, changePct }) {
-  return (
-    <div className={`stat-card stat-card-${tint}`}>
-      <div className="stat-card-top">
-        <span className={`stat-card-label label-${tint}`}>{label}</span>
-        <ChangeBadge pct={changePct} />
-      </div>
-      <div className="stat-card-value">{value}</div>
-      <Sparkline data={sparklineData} max={sparklineMax} tint={tint} />
-    </div>
-  );
-}
-
-function WeeklyBarChart({ buckets }) {
-  const max = Math.max(1, ...buckets.map((b) => b.count));
-  return (
-    <div className="chart-card">
-      <div className="chart-card-title">Weekly completions</div>
-      <div className="bar-chart">
-        {buckets.map((b, i) => (
-          <div className="bar-chart-col" key={i}>
-            <div className="bar-chart-track">
-              <div
-                className="bar-chart-fill"
-                style={{ height: `${Math.max(3, (b.count / max) * 100)}%` }}
-                title={`${b.count} completed`}
-              />
-            </div>
-            <div className="bar-chart-label">{b.label}</div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function DonutChart({ pct, label, sublabel }) {
-  const r = 42;
-  const c = 2 * Math.PI * r;
-  const offset = c * (1 - pct / 100);
-  return (
-    <div className="chart-card donut-card">
-      <div className="chart-card-title">Completion rate</div>
-      <div className="donut-wrap">
-        <svg width="140" height="140" viewBox="0 0 100 100">
-          <circle cx="50" cy="50" r={r} fill="none" stroke="var(--donut-track)" strokeWidth="10" />
-          <circle
-            cx="50"
-            cy="50"
-            r={r}
-            fill="none"
-            stroke="var(--accent-purple)"
-            strokeWidth="10"
-            strokeLinecap="round"
-            strokeDasharray={c}
-            strokeDashoffset={offset}
-            transform="rotate(-90 50 50)"
-          />
-        </svg>
-        <div className="donut-center">
-          <div className="donut-value">{pct.toFixed(0)}%</div>
-          <div className="donut-label">{sublabel}</div>
-        </div>
-      </div>
-      <div className="chart-card-title" style={{ marginTop: 4 }}>
+    <div className="stat-card-tint" style={{ background: `var(${bg})`, borderColor: `var(${border})` }}>
+      <span className="stat-card-label" style={{ color: `var(${labelColor})` }}>
         {label}
+      </span>
+      <div className="stat-card-tint-row">
+        <span className="stat-card-value">{value}</span>
+        <Sparkline values={values} max={max} colorVar={colorVar} />
       </div>
+      <span className={`stat-card-delta ${deltaClass}`}>{delta}</span>
     </div>
   );
 }
@@ -112,103 +51,131 @@ export default function Dashboard({ tasks, uploads }) {
     ? rated.reduce((sum, u) => sum + (u.critique.overall_score || 0), 0) / rated.length
     : null;
 
-  const createdBuckets = weeklyCounts(tasks.map((t) => new Date(t.createdAt)));
+  const createdBuckets = weeklyCounts(tasks.map((t) => new Date(t.createdAt)), 8);
   const completedBuckets = weeklyCounts(
-    completed.map((t) => new Date(t.completedAt)).filter(Boolean)
+    completed.map((t) => new Date(t.completedAt)).filter(Boolean),
+    8
   );
   const ratingBuckets = weeklyAverages(
-    rated.map((u) => ({ date: new Date(u.createdAt), value: u.critique.overall_score }))
+    rated.map((u) => ({ date: new Date(u.createdAt), value: u.critique.overall_score })),
+    8
   );
 
   const createdChange = lastChangePct(createdBuckets, 'count');
   const completedChange = lastChangePct(completedBuckets, 'count');
   const ratingChange = lastChangePct(ratingBuckets, 'value');
 
-  const completionRate = tasks.length ? (completed.length / tasks.length) * 100 : 0;
+  const totalSteps = tasks.reduce((sum, t) => sum + t.subtasks.length, 0);
+  const doneSteps = tasks.reduce((sum, t) => sum + t.subtasks.filter((s) => s.done).length, 0);
+  const rate = totalSteps ? Math.round((doneSteps / totalSteps) * 100) : 0;
 
-  const recentUploads = [...uploads].slice(0, 6);
+  const weekMax = Math.max(1, ...completedBuckets.map((b) => b.count));
+
+  function deltaText(pct) {
+    if (pct === null) return 'no trend yet';
+    return `${pct >= 0 ? '+' : ''}${pct.toFixed(1)}% vs last week`;
+  }
+  function deltaClass(pct) {
+    if (pct === null) return 'delta-neutral';
+    return pct >= 0 ? 'delta-ok' : 'delta-warn';
+  }
 
   return (
-    <div className="dashboard">
-      <h1 className="page-title">Dashboard</h1>
-
+    <div className="dashboard animate-in">
       <div className="stat-row">
-        <StatCard
-          tint="blue"
+        <TintStatCard
+          bg="--accentSoft"
+          border="--accentLine"
+          labelColor="--ink2"
           label="Active tasks"
           value={active.length}
-          sparklineData={createdBuckets}
-          sparklineMax={Math.max(1, ...createdBuckets.map((b) => b.count))}
-          changePct={createdChange}
+          values={createdBuckets.map((b) => b.count)}
+          max={Math.max(1, ...createdBuckets.map((b) => b.count))}
+          colorVar="--accent"
+          delta={deltaText(createdChange)}
+          deltaClass={deltaClass(createdChange)}
         />
-        <StatCard
-          tint="pink"
+        <TintStatCard
+          bg="--greenSoft"
+          border="--line"
+          labelColor="--ink2"
           label="Completed tasks"
           value={completed.length}
-          sparklineData={completedBuckets}
-          sparklineMax={Math.max(1, ...completedBuckets.map((b) => b.count))}
-          changePct={completedChange}
+          values={completedBuckets.map((b) => b.count)}
+          max={weekMax}
+          colorVar="--green"
+          delta={deltaText(completedChange)}
+          deltaClass={deltaClass(completedChange)}
         />
-        <StatCard
-          tint="purple"
-          label="Avg. rating"
+        <TintStatCard
+          bg="--lavSoft"
+          border="--line"
+          labelColor="--ink2"
+          label="Avg. design rating"
           value={avgRating !== null ? avgRating.toFixed(1) : '—'}
-          sparklineData={ratingBuckets}
-          sparklineMax={10}
-          changePct={ratingChange}
+          values={ratingBuckets.map((b) => b.value ?? 0)}
+          max={10}
+          colorVar="--lav"
+          delta={deltaText(ratingChange)}
+          deltaClass={deltaClass(ratingChange)}
         />
       </div>
 
       <div className="chart-row">
-        <WeeklyBarChart buckets={completedBuckets} />
-        <DonutChart
-          pct={completionRate}
-          label="Completed vs. total tasks"
-          sublabel={`${completed.length}/${tasks.length || 0}`}
-        />
-      </div>
-
-      <div className="dashboard-columns">
-        <div>
-          <div className="section-title">
-            <Icon name="tasks" size={16} /> Active tasks
+        <div className="panel-card chart-panel">
+          <div className="chart-panel-title-row">
+            <span className="panel-card-header-title">Weekly completions</span>
+            <span className="chart-panel-sub">last {completedBuckets.length} weeks</span>
           </div>
-          {active.length === 0 && <div className="empty-state small">Nothing active.</div>}
-          <ul className="dashboard-task-list">
-            {active.map((t) => (
-              <li key={t.id}>
-                <div className="task-list-item-row">
-                  <span>{t.title}</span>
-                  <span className="badge">{CATEGORY_LABELS[t.category]}</span>
-                </div>
-                <div className="progress-bar">
-                  <div className="progress-fill" style={{ width: `${taskProgress(t)}%` }} />
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div>
-          <div className="section-title">
-            <Icon name="gallery" size={16} /> Recent uploads
-          </div>
-          {recentUploads.length === 0 && (
-            <div className="empty-state small">No uploads yet.</div>
-          )}
-          <div className="recent-uploads-grid">
-            {recentUploads.map((u) => (
-              <div className="recent-upload-card" key={u.id}>
-                <img src={u.dataUrl} alt={u.filename} />
-                <div className="recent-upload-meta">
-                  {u.critique ? (
-                    <span className="badge badge-done">{u.critique.overall_score}/10</span>
-                  ) : (
-                    <span className="badge">unrated</span>
-                  )}
-                </div>
+          <div className="bar-chart">
+            {completedBuckets.map((b, i) => (
+              <div className="bar-chart-col" key={i}>
+                <span className="bar-chart-value mono">{b.count}</span>
+                <div
+                  className={`bar-chart-bar ${i === completedBuckets.length - 1 ? 'current' : ''}`}
+                  style={{ height: `${Math.max(2, (b.count / weekMax) * 130)}px` }}
+                />
+                <span className="bar-chart-label">{b.label}</span>
               </div>
             ))}
+          </div>
+        </div>
+
+        <div className="panel-card chart-panel">
+          <span className="panel-card-header-title">Completion rate</span>
+          <div className="donut-row">
+            <div
+              className="donut-circle"
+              style={{
+                background: `conic-gradient(var(--accent) 0 ${rate}%, var(--line2) ${rate}% 100%)`,
+              }}
+            >
+              <div className="donut-center">
+                <span className="donut-value">{rate}%</span>
+              </div>
+            </div>
+            <div className="donut-legend">
+              <div className="donut-legend-row">
+                <span className="donut-legend-dot" style={{ background: 'var(--accent)' }} />
+                <span className="donut-legend-label">Steps cleared</span>
+                <span className="donut-legend-value mono">{doneSteps}</span>
+              </div>
+              <div className="donut-legend-row">
+                <span
+                  className="donut-legend-dot"
+                  style={{ background: 'var(--line2)', border: '1px solid var(--line)' }}
+                />
+                <span className="donut-legend-label">Steps remaining</span>
+                <span className="donut-legend-value mono">{totalSteps - doneSteps}</span>
+              </div>
+              <div className="donut-legend-row">
+                <span className="donut-legend-dot" style={{ background: 'var(--ok)' }} />
+                <span className="donut-legend-label">Tasks finished</span>
+                <span className="donut-legend-value mono">
+                  {completed.length}/{tasks.length}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </div>

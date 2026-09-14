@@ -122,71 +122,77 @@ export default function ResearchPanel({ data, onChange, taskTitle, category, tag
   const hasContent = data.notes.trim() || data.links.length > 0 || data.images.length > 0;
 
   return (
-    <div className="subpanel research-panel">
-      <div className="subpanel-title">Research</div>
-
+    <div className="subpanel">
       <AutoResearch taskTitle={taskTitle} category={category} tags={tags} data={data} onChange={onChange} />
 
-      <label className="label small">Reference links</label>
-      <div className="link-row">
-        <input
-          className="input"
-          placeholder="https://..."
-          value={linkDraft}
-          onChange={(e) => setLinkDraft(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addLink())}
-        />
-        <button type="button" className="btn" onClick={addLink}>
-          Add
-        </button>
-      </div>
-      {data.links.length > 0 && (
-        <ul className="link-list">
-          {data.links.map((link, idx) => (
-            <li key={idx}>
-              <a href={link} target="_blank" rel="noreferrer">
-                {link}
-              </a>
-              <button className="icon-btn" onClick={() => removeLink(idx)}>
-                ×
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      <label className="label small">Notes</label>
-      <textarea
-        className="textarea"
-        rows={3}
-        placeholder="What are you learning from these references?"
-        value={data.notes}
-        onChange={(e) => onChange({ ...data, notes: e.target.value })}
-      />
-
-      <label className="label small">Pinned reference images (up to 5)</label>
-      <input
-        type="file"
-        accept="image/png,image/jpeg"
-        multiple
-        disabled={data.images.length >= 5}
-        onChange={(e) => e.target.files && onImageFiles(e.target.files)}
-      />
-      {data.images.length > 0 && (
-        <div className="ref-image-grid">
-          {data.images.map((src, idx) => (
-            <div className="ref-image" key={idx}>
-              <img src={src} alt={`reference ${idx + 1}`} />
-              <button className="icon-btn ref-image-remove" onClick={() => removeImage(idx)}>
-                ×
-              </button>
-            </div>
-          ))}
+      <div className="research-expand-grid">
+        <div className="research-expand-col">
+          <span className="subpanel-title">Reference links</span>
+          {data.links.length > 0 && (
+            <ul className="link-list">
+              {data.links.map((link, idx) => (
+                <li key={idx}>
+                  <a href={link} target="_blank" rel="noreferrer">
+                    {link}
+                  </a>
+                  <button className="icon-btn" onClick={() => removeLink(idx)}>
+                    ×
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className="link-row">
+            <input
+              className="input"
+              placeholder="Paste a link…"
+              value={linkDraft}
+              onChange={(e) => setLinkDraft(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addLink())}
+            />
+            <button type="button" className="btn" onClick={addLink}>
+              Add
+            </button>
+          </div>
         </div>
-      )}
+
+        <div className="research-expand-col">
+          <span className="subpanel-title">Notes</span>
+          <textarea
+            className="textarea"
+            rows={5}
+            placeholder="What are you borrowing, and what are you avoiding?"
+            value={data.notes}
+            onChange={(e) => onChange({ ...data, notes: e.target.value })}
+          />
+        </div>
+
+        <div className="research-expand-col">
+          <span className="subpanel-title">Pinned images (up to 5)</span>
+          <input
+            type="file"
+            accept="image/png,image/jpeg"
+            multiple
+            disabled={data.images.length >= 5}
+            onChange={(e) => e.target.files && onImageFiles(e.target.files)}
+          />
+          {data.images.length > 0 && (
+            <div className="ref-image-grid">
+              {data.images.map((src, idx) => (
+                <div className="ref-image" key={idx}>
+                  <img src={src} alt={`reference ${idx + 1}`} />
+                  <button className="icon-btn ref-image-remove" onClick={() => removeImage(idx)}>
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
 
       {!hasContent && (
-        <div className="hint-warning">
+        <div className="hint-warning" style={{ margin: '12px 0 0' }}>
           Add at least one link, note, or reference image before checking this off.
         </div>
       )}

@@ -30,6 +30,8 @@ export default function App() {
   const [selectedTaskId, setSelectedTaskId] = useState(persisted?.tasks?.[0]?.id ?? null);
   const [taskSearch, setTaskSearch] = useState('');
   const [addTaskOpen, setAddTaskOpen] = useState(false);
+  // Never persisted on purpose — every reload resets to dark, per spec.
+  const [theme, setTheme] = useState('dark');
 
   useEffect(() => {
     saveState({ tasks, uploads });
@@ -45,6 +47,11 @@ export default function App() {
     if (!q) return tasks;
     return tasks.filter((t) => t.title.toLowerCase().includes(q));
   }, [tasks, taskSearch]);
+
+  const activeTaskCount = tasks.filter((t) => !t.completedAt).length;
+  const totalSteps = tasks.reduce((sum, t) => sum + t.subtasks.length, 0);
+  const doneSteps = tasks.reduce((sum, t) => sum + t.subtasks.filter((s) => s.done).length, 0);
+  const completionRate = totalSteps ? Math.round((doneSteps / totalSteps) * 100) : 0;
 
   function createTask(title, tags) {
     const category = detectCategory(title);
@@ -117,14 +124,26 @@ export default function App() {
     return record.id;
   }
 
+  function goToTask(id) {
+    setSelectedTaskId(id);
+    setTab('Tasks');
+  }
+
   return (
-    <div className="app-shell">
-      <Sidebar active={tab} onSelect={setTab} />
+    <div className="app-shell" data-theme={theme}>
+      <Sidebar
+        active={tab}
+        onSelect={setTab}
+        activeTaskCount={activeTaskCount}
+        galleryCount={uploads.length}
+        completionRate={completionRate}
+      />
 
       <div className="app-content">
         <TopBar
-          search={taskSearch}
-          onSearchChange={setTaskSearch}
+          tab={tab}
+          theme={theme}
+          onToggleTheme={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
           onAddTask={() => setAddTaskOpen(true)}
         />
 
@@ -133,39 +152,38 @@ export default function App() {
             <Home
               tasks={tasks}
               uploads={uploads}
-              onOpenTask={(id) => {
-                setSelectedTaskId(id);
-                setTab('Tasks');
-              }}
-              onViewGallery={() => setTab('Gallery')}
+              onOpenTask={goToTask}
+              onGoTasks={() => setTab('Tasks')}
+              onNewMoodboard={() => setTab('Research')}
+              onAddTask={() => setAddTaskOpen(true)}
+              onGoUpload={() => setTab('Upload')}
             />
           )}
 
           {tab === 'Tasks' && (
-            <>
-              <h1 className="page-title">Tasks</h1>
-              <div className="tasks-layout">
-                <div className="tasks-sidebar">
-                  <TaskList
-                    tasks={visibleTasks}
-                    selectedId={selectedTaskId}
-                    onSelect={setSelectedTaskId}
-                    onDelete={deleteTask}
-                  />
-                </div>
-                <div className="tasks-content">
-                  {selectedTask ? (
-                    <TaskDetail task={selectedTask} onUpdate={updateTask} />
-                  ) : (
-                    <div className="empty-state">
-                      {tasks.length === 0
-                        ? 'Add a task to generate its checklist.'
-                        : 'Select a task to see its checklist.'}
-                    </div>
-                  )}
-                </div>
+            <div className="tasks-layout animate-in">
+              <div className="panel-card task-sidebar-panel">
+                <TaskList
+                  tasks={visibleTasks}
+                  selectedId={selectedTaskId}
+                  onSelect={setSelectedTaskId}
+                  onDelete={deleteTask}
+                  search={taskSearch}
+                  onSearchChange={setTaskSearch}
+                />
               </div>
-            </>
+              <div className="panel-card task-detail-panel">
+                {selectedTask ? (
+                  <TaskDetail task={selectedTask} onUpdate={updateTask} />
+                ) : (
+                  <div className="empty-state">
+                    {tasks.length === 0
+                      ? 'Add a task to generate its checklist.'
+                      : 'Select a task to see its checklist.'}
+                  </div>
+                )}
+              </div>
+            </div>
           )}
 
           {tab === 'Research' && (
@@ -180,7 +198,7 @@ export default function App() {
 
           {tab === 'Upload' && <UploadTab tasks={tasks} onAddUpload={addUpload} />}
 
-          {tab === 'Gallery' && <Gallery tasks={tasks} uploads={uploads} />}
+          {tab === 'Gallery' && <Gallery tasks={tasks} uploads={uploads} onGoToTask={goToTask} />}
         </main>
       </div>
 
