@@ -14,10 +14,12 @@ function fileToDataUrl(file) {
   });
 }
 
-export default function UploadTab({ tasks, onAddUpload }) {
+export default function UploadTab({ tasks, onAddUpload, lastResearchPack }) {
   const [taskId, setTaskId] = useState(tasks[0]?.id ?? '');
   const [entries, setEntries] = useState([]); // { file, preview }
   const [isLogo, setIsLogo] = useState(false);
+  const [useResearchPack, setUseResearchPack] = useState(false);
+  const [refNotes, setRefNotes] = useState('');
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(null); // { done, total }
   const [error, setError] = useState(null);
@@ -50,10 +52,15 @@ export default function UploadTab({ tasks, onAddUpload }) {
     setProgress({ done: 0, total: entries.length });
 
     const task = tasks.find((t) => t.id === taskId);
+    const trimmedNotes = refNotes.trim();
+    const extraRef =
+      trimmedNotes || (useResearchPack && lastResearchPack)
+        ? { notes: trimmedNotes, pack: useResearchPack ? lastResearchPack : null }
+        : undefined;
     const newResults = [];
     for (const { file, preview } of entries) {
       try {
-        const critique = await analyzeDesign(file, task);
+        const critique = await analyzeDesign(file, task, extraRef);
         const brand_guideline = isLogo ? await buildBrandGuideline(file, task) : null;
         if (brand_guideline) critique.brand_guideline = brand_guideline;
 
@@ -141,6 +148,36 @@ export default function UploadTab({ tasks, onAddUpload }) {
           <input type="checkbox" checked={isLogo} onChange={(e) => setIsLogo(e.target.checked)} />
           <span>These are logos — also generate a starting brand guideline for each</span>
         </label>
+
+        <div className="attach-ref-block">
+          <span className="label small">Attach a reference (optional)</span>
+          {lastResearchPack && (
+            <label className="checkbox-row">
+              <input
+                type="checkbox"
+                checked={useResearchPack}
+                onChange={(e) => setUseResearchPack(e.target.checked)}
+              />
+              <span>
+                Use your latest research from the Research tab
+                {lastResearchPack.source_filename ? ` (from ${lastResearchPack.source_filename})` : ''} —
+                {' '}
+                {(lastResearchPack.keywords || []).slice(0, 3).join(', ') || 'no keywords'}
+              </span>
+            </label>
+          )}
+          <textarea
+            className="textarea"
+            rows={2}
+            placeholder="Or type reference notes — what you're comparing this against, what you borrowed…"
+            value={refNotes}
+            onChange={(e) => setRefNotes(e.target.value)}
+          />
+          <span className="research-status" style={{ marginTop: 0 }}>
+            Optional — when attached, it's factored into the Research &amp; reference score below,
+            even without linking a task.
+          </span>
+        </div>
 
         <button className="btn btn-primary" type="submit" disabled={!entries.length || loading}>
           {loading

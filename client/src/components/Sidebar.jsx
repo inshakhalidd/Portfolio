@@ -3,7 +3,7 @@ const NAV = [
   { key: 'Tasks', label: 'Tasks' },
   { key: 'Research', label: 'Research' },
   { key: 'Dashboard', label: 'Dashboard' },
-  { key: 'Upload', label: 'Upload' },
+  { key: 'Upload', label: 'Check' },
   { key: 'Gallery', label: 'Gallery' },
 ];
 

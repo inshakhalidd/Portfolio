@@ -36,6 +36,10 @@ export default function App() {
   const [addTaskOpen, setAddTaskOpen] = useState(false);
   // Never persisted on purpose — every reload resets to dark, per spec.
   const [theme, setTheme] = useState('dark');
+  // Most recent research pack built in the Research tab (free or from an
+  // image) — offered as an optional attachment when checking a design, so
+  // the rating can factor in reference work that isn't tied to any task.
+  const [lastResearchPack, setLastResearchPack] = useState(null);
 
   useEffect(() => {
     if (!supabaseConfigured) {
@@ -253,12 +257,15 @@ export default function App() {
                   tasks={tasks}
                   onCreateTask={createTaskFromResearch}
                   onAttachToTask={attachResearchToTask}
+                  onPackBuilt={setLastResearchPack}
                 />
               )}
 
               {tab === 'Dashboard' && <Dashboard tasks={tasks} uploads={uploads} />}
 
-              {tab === 'Upload' && <UploadTab tasks={tasks} onAddUpload={addUpload} />}
+              {tab === 'Upload' && (
+                <UploadTab tasks={tasks} onAddUpload={addUpload} lastResearchPack={lastResearchPack} />
+              )}
 
               {tab === 'Gallery' && (
                 <Gallery tasks={tasks} uploads={uploads} onGoToTask={goToTask} onDeleteUpload={deleteUpload} />

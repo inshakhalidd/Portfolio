@@ -3,7 +3,7 @@ const PAGE_META = {
   Tasks: { sub: 'Steps unlock in order' },
   Research: { sub: 'Moodboard builder' },
   Dashboard: { sub: 'Last 8 weeks' },
-  Upload: { sub: 'Get a structured critique' },
+  Upload: { title: 'Check', sub: 'Get a structured critique' },
   Gallery: { sub: 'Every design you have uploaded' },
 };
 
@@ -14,7 +14,7 @@ function greetingTitle() {
 }
 
 export default function TopBar({ tab, theme, onToggleTheme, onAddTask }) {
-  const title = tab === 'Home' ? greetingTitle() : tab;
+  const title = tab === 'Home' ? greetingTitle() : PAGE_META[tab]?.title || tab;
   const sub = PAGE_META[tab]?.sub || '';
 
   return (

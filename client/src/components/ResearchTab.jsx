@@ -84,7 +84,7 @@ function Moodboard({ pack }) {
   );
 }
 
-export default function ResearchTab({ tasks, onCreateTask, onAttachToTask }) {
+export default function ResearchTab({ tasks, onCreateTask, onAttachToTask, onPackBuilt }) {
   const [category, setCategory] = useState('general');
   const [categoryTouched, setCategoryTouched] = useState(false);
   const [tags, setTags] = useState([]);
@@ -116,12 +116,14 @@ export default function ResearchTab({ tasks, onCreateTask, onAttachToTask }) {
   async function run(e) {
     e.preventDefault();
     setActionMessage(null);
-    await runner.run(category, tags);
+    const pack = await runner.run(category, tags);
+    if (pack) onPackBuilt?.(pack);
   }
 
   async function boost() {
     setActionMessage(null);
-    await runner.boost(category);
+    const pack = await runner.boost(category);
+    if (pack) onPackBuilt?.(pack);
   }
 
   function createTask() {
@@ -159,6 +161,7 @@ export default function ResearchTab({ tasks, onCreateTask, onAttachToTask }) {
     try {
       const pack = await buildImageResearchPack(imageFile, category, tags);
       setImagePack(pack);
+      onPackBuilt?.(pack);
     } catch (err) {
       setImageError(err.message);
     } finally {

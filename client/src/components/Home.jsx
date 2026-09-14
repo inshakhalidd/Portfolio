@@ -125,7 +125,7 @@ export default function Home({ tasks, uploads, onOpenTask, onGoTasks, onNewMoodb
               <span className="home-critique-meta-note">No designs rated yet.</span>
             )}
             <button className="btn" onClick={onGoUpload}>
-              Upload a new design
+              Check a new design
             </button>
           </div>
         </div>

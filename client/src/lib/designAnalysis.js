@@ -226,49 +226,69 @@ export function analyzePixels(imageData) {
   };
 }
 
-function researchScoreFor(task) {
-  if (!task) {
+// `extraRef` is an optional, ad hoc reference attached directly in the Check
+// tab — independent of any task — either free-typed notes or a research
+// pack carried over from the Research tab. Entirely optional: with neither
+// a linked task nor an attached reference, this falls back to the old
+// "nothing to check" result.
+function researchScoreFor(task, extraRef) {
+  const researchSubtask = task?.subtasks.find((s) => s.type === 'research');
+  const d = researchSubtask?.data;
+  const hasTaskTrail = Boolean(d && (d.notes.trim() || d.links.length || d.images.length));
+  const refNotes = extraRef?.notes?.trim() || '';
+  const refPack = extraRef?.pack || null;
+  const hasAttached = Boolean(refNotes || refPack);
+
+  if (!hasTaskTrail && !hasAttached) {
     return {
       score: 4,
-      notes:
-        'No task linked to this upload, so there is no research trail to check. Attach uploads to a task and fill in its research subtask for a real assessment here.',
+      notes: task
+        ? researchSubtask
+          ? 'The research subtask on the linked task is still empty, and nothing was attached here either — nothing to ground this design in yet.'
+          : 'The linked task has no research subtask, and nothing was attached here, so this can\'t be evaluated from process data.'
+        : 'No task linked and no reference attached, so there is no research trail to check. Attach a reference below, or link this to a task with a filled-in research step.',
     };
   }
-  const researchSubtask = task.subtasks.find((s) => s.type === 'research');
-  if (!researchSubtask) {
-    return {
-      score: 4,
-      notes: 'The linked task has no research subtask, so this can\'t be evaluated from process data.',
-    };
-  }
-  const d = researchSubtask.data;
+
   let score = 3;
   const bits = [];
-  if (d.notes.trim().length > 40) {
-    score += 2;
-    bits.push('solid written notes');
-  } else if (d.notes.trim().length > 0) {
-    score += 1;
-    bits.push('brief notes');
+  if (d) {
+    if (d.notes.trim().length > 40) {
+      score += 2;
+      bits.push('solid written notes');
+    } else if (d.notes.trim().length > 0) {
+      score += 1;
+      bits.push('brief notes');
+    }
+    if (d.links.length >= 3) {
+      score += 2;
+      bits.push(`${d.links.length} reference links`);
+    } else if (d.links.length >= 1) {
+      score += 1;
+      bits.push(`${d.links.length} reference link${d.links.length > 1 ? 's' : ''}`);
+    }
+    if (d.images.length >= 3) {
+      score += 2;
+      bits.push(`${d.images.length} pinned reference images`);
+    } else if (d.images.length >= 1) {
+      score += 1;
+      bits.push(`${d.images.length} pinned reference image`);
+    }
   }
-  if (d.links.length >= 3) {
-    score += 2;
-    bits.push(`${d.links.length} reference links`);
-  } else if (d.links.length >= 1) {
-    score += 1;
-    bits.push(`${d.links.length} reference link${d.links.length > 1 ? 's' : ''}`);
+  if (refNotes) {
+    score += refNotes.length > 40 ? 2 : 1;
+    bits.push('an attached reference note');
   }
-  if (d.images.length >= 3) {
+  if (refPack) {
     score += 2;
-    bits.push(`${d.images.length} pinned reference images`);
-  } else if (d.images.length >= 1) {
-    score += 1;
-    bits.push(`${d.images.length} pinned reference image`);
+    const keywordCount = refPack.keywords?.length || 0;
+    const linkCount = refPack.links?.length || 0;
+    bits.push(`an attached research pack (${keywordCount} keywords, ${linkCount} reference links)`);
   }
   score = clamp(score, 1, 10);
   const notes = bits.length
-    ? `Research subtask shows ${bits.join(', ')} — that's a real trail back to reference, keep it up.`
-    : 'The research subtask on this task is still empty — nothing to ground this design in yet.';
+    ? `Grounded in ${bits.join(', ')} — that's a real trail back to reference, keep it up.`
+    : 'Nothing to ground this design in yet.';
   return { score, notes };
 }
 
@@ -280,7 +300,7 @@ function paletteScoreFor(paletteSize, targets) {
   return 4;
 }
 
-export async function analyzeDesign(file, task) {
+export async function analyzeDesign(file, task, extraRef) {
   const imageData = await loadImageData(file);
   const m = analyzePixels(imageData);
   const category = task?.category || 'general';
@@ -316,7 +336,7 @@ export async function analyzeDesign(file, task) {
       : 'There\'s a visible gap between different groups of elements, which helps the eye sort them apart.'
   );
 
-  const research = researchScoreFor(task);
+  const research = researchScoreFor(task, extraRef);
 
   const paletteScore = paletteScoreFor(m.paletteSize, targets);
   const colorNote =
