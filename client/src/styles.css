@@ -1277,6 +1277,11 @@ textarea:focus {
   border-color: var(--lav);
   background: var(--lavSoft);
 }
+.mode-badge.mode-image {
+  color: var(--ok);
+  border-color: var(--ok);
+  background: var(--panel2);
+}
 .auto-research-boost {
   margin-top: 8px;
   display: flex;

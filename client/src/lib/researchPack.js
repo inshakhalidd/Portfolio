@@ -17,7 +17,10 @@ export function formatPackIntoNotes(pack) {
     lines.push(`Keywords: ${pack.keywords.join(', ')}`);
   }
   if (pack.palette?.length) {
-    lines.push(`Palette: ${pack.palette.map((p) => `${p.hex} (${p.reasoning})`).join('; ')}`);
+    lines.push(`Palette: ${pack.palette.map((p) => `${p.hex} (${p.reasoning || p.role || 'accent'})`).join('; ')}`);
+  }
+  if (pack.source_filename) {
+    lines.push(`Source image: ${pack.source_filename}`);
   }
   return lines.join('\n');
 }

@@ -66,7 +66,7 @@ export function estimateBackground(data, w, h) {
   return { r, g, b };
 }
 
-function analyzePixels(imageData) {
+export function analyzePixels(imageData) {
   const { data, width: w, height: h } = imageData;
   const bg = estimateBackground(data, w, h);
 
