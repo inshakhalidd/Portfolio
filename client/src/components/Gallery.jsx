@@ -8,7 +8,7 @@ import BrandGuidelineCard from './BrandGuidelineCard.jsx';
 import Modal from './Modal.jsx';
 import SignedImage from './SignedImage.jsx';
 
-export default function Gallery({ tasks, uploads, onGoToTask }) {
+export default function Gallery({ tasks, uploads, onGoToTask, onDeleteUpload }) {
   const [query, setQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [tagFilter, setTagFilter] = useState('all');
@@ -34,6 +34,13 @@ export default function Gallery({ tasks, uploads, onGoToTask }) {
 
   const openUpload = openId ? uploads.find((u) => u.id === openId) : null;
   const openTask = openUpload ? taskById[openUpload.taskId] : null;
+
+  function requestDelete(id, label, e) {
+    e?.stopPropagation();
+    if (!window.confirm(`Delete "${label}"? This can't be undone.`)) return;
+    if (openId === id) setOpenId(null);
+    onDeleteUpload(id);
+  }
 
   useEffect(() => {
     if (!openUpload) {
@@ -111,6 +118,14 @@ export default function Gallery({ tasks, uploads, onGoToTask }) {
               <div className="gallery-card" key={u.id} onClick={() => setOpenId(u.id)}>
                 <div className="gallery-thumb" style={{ background: categorySoftVar(tintKey) }}>
                   <SignedImage path={u.imagePath} alt={u.filename} />
+                  <button
+                    type="button"
+                    className="gallery-card-trash"
+                    title="Delete upload"
+                    onClick={(e) => requestDelete(u.id, task?.title || u.filename, e)}
+                  >
+                    🗑
+                  </button>
                 </div>
                 <div className="gallery-card-body">
                   <span className="gallery-card-title">{task?.title || u.filename}</span>
@@ -140,20 +155,39 @@ export default function Gallery({ tasks, uploads, onGoToTask }) {
                   logoUrl={openImageUrl}
                 />
               )}
-              {openTask && (
+              <div className="modal-action-row">
+                {openTask && (
+                  <button
+                    className="btn btn-primary modal-goto-task"
+                    onClick={() => {
+                      setOpenId(null);
+                      onGoToTask(openTask.id);
+                    }}
+                  >
+                    Go to task
+                  </button>
+                )}
                 <button
-                  className="btn btn-primary modal-goto-task"
-                  onClick={() => {
-                    setOpenId(null);
-                    onGoToTask(openTask.id);
-                  }}
+                  type="button"
+                  className="btn btn-danger"
+                  onClick={(e) => requestDelete(openUpload.id, openTask?.title || openUpload.filename, e)}
                 >
-                  Go to task
+                  Delete upload
                 </button>
-              )}
+              </div>
             </>
           ) : (
-            <div className="empty-state small">No critique recorded for this upload.</div>
+            <div className="empty-state small">
+              No critique recorded for this upload.
+              <button
+                type="button"
+                className="btn btn-danger"
+                style={{ marginTop: 10 }}
+                onClick={(e) => requestDelete(openUpload.id, openTask?.title || openUpload.filename, e)}
+              >
+                Delete upload
+              </button>
+            </div>
           )}
         </Modal>
       )}

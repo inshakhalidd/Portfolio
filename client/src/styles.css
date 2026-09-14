@@ -427,6 +427,16 @@ textarea:focus {
   color: var(--accentInk);
 }
 
+.btn-danger {
+  border: 1px solid var(--warn);
+  background: transparent;
+  color: var(--warn);
+}
+.btn-danger:hover {
+  background: var(--warn);
+  color: var(--bg);
+}
+
 .icon-btn {
   background: transparent;
   border: none;
@@ -1739,6 +1749,80 @@ textarea:focus {
   color: var(--ink3);
 }
 
+.upload-preview-grid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+  gap: 8px;
+  padding: 4px;
+}
+.upload-preview-thumb {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--panel);
+}
+.upload-preview-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.upload-preview-remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  border: none;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 13px;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+}
+.upload-preview-remove:hover {
+  background: var(--warn);
+}
+
+.upload-result-item {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+}
+.upload-result-item summary {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  font-size: 13px;
+  list-style: none;
+}
+.upload-result-item summary::-webkit-details-marker {
+  display: none;
+}
+.upload-result-item summary::before {
+  content: '\25B8';
+  color: var(--ink3);
+  transition: transform 0.15s ease;
+}
+.upload-result-item[open] summary::before {
+  transform: rotate(90deg);
+}
+.upload-result-filename {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
 .checkbox-row {
   display: flex;
   align-items: center;
@@ -1892,6 +1976,181 @@ textarea:focus {
   color: var(--warn);
 }
 
+/* ---------- brand guideline card ---------- */
+
+.brandguide-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+}
+
+.brandguide-stripe {
+  height: 6px;
+  width: 100%;
+}
+
+.brandguide-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 20px 22px 0;
+  flex-wrap: wrap;
+}
+.brandguide-kicker {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.brandguide-summary {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--ink2);
+  line-height: 1.55;
+  max-width: 60ch;
+}
+.brandguide-header-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.brandguide-block {
+  padding: 20px 22px;
+}
+.brandguide-block-title {
+  display: block;
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--ink);
+  margin-bottom: 12px;
+}
+.brandguide-block-title.dos {
+  color: var(--ok);
+}
+.brandguide-block-title.donts {
+  color: var(--warn);
+}
+
+.brandguide-palette-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+}
+.brandguide-swatch {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--panel2);
+}
+.brandguide-swatch-color {
+  height: 56px;
+  width: 100%;
+}
+.brandguide-swatch-meta {
+  padding: 9px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.brandguide-swatch-role {
+  font-size: 12px;
+  font-weight: 600;
+}
+.brandguide-swatch-hex,
+.brandguide-swatch-share {
+  font-size: 10.5px;
+  color: var(--ink3);
+}
+
+.brandguide-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-top: 1px solid var(--line2);
+}
+.brandguide-grid .brandguide-block:first-child {
+  border-right: 1px solid var(--line2);
+}
+@media (max-width: 640px) {
+  .brandguide-grid {
+    grid-template-columns: 1fr;
+  }
+  .brandguide-grid .brandguide-block:first-child {
+    border-right: none;
+    border-bottom: 1px solid var(--line2);
+  }
+}
+
+.brandguide-type-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 10px;
+}
+.brandguide-type-aa {
+  font-size: 30px;
+  color: var(--ink);
+  width: 46px;
+  flex: none;
+}
+.brandguide-type-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.brandguide-type-label {
+  font-size: 10.5px;
+  color: var(--ink3);
+}
+.brandguide-type-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+}
+.brandguide-note {
+  font-size: 11.5px;
+  color: var(--ink3);
+  font-style: italic;
+  margin-top: 10px;
+  line-height: 1.5;
+}
+
+.brandguide-rule {
+  margin-bottom: 12px;
+}
+.brandguide-rule-label {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 650;
+  color: var(--ink2);
+  margin-bottom: 2px;
+}
+.brandguide-rule p {
+  font-size: 12.5px;
+  color: var(--ink2);
+  line-height: 1.5;
+}
+
+.brandguide-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.brandguide-list li {
+  display: flex;
+  gap: 9px;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--ink2);
+}
+
 .steps-section {
   padding: 20px 22px;
   display: flex;
@@ -2010,6 +2269,31 @@ textarea:focus {
   object-fit: cover;
   display: block;
 }
+.gallery-card-trash {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--ink2);
+  font-size: 13px;
+  opacity: 0;
+  transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.gallery-card:hover .gallery-card-trash {
+  opacity: 1;
+}
+.gallery-card-trash:hover {
+  background: var(--panel2);
+  border-color: var(--warn);
+  color: var(--warn);
+}
+
 .gallery-thumb-filename {
   font-family: 'JetBrains Mono', monospace;
   font-size: 10px;
@@ -2063,6 +2347,11 @@ textarea:focus {
   color: var(--ink3);
 }
 .modal-goto-task {
+  margin-top: 4px;
+}
+.modal-action-row {
+  display: flex;
+  gap: 10px;
   margin-top: 4px;
 }
 

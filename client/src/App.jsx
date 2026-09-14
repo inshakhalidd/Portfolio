@@ -7,6 +7,7 @@ import {
   updateTaskRemote,
   deleteTaskRemote,
   insertUpload,
+  deleteUploadRemote,
 } from './lib/db.js';
 import { generateSubtasks } from './lib/taskTemplates.js';
 import { mergePackIntoResearchData } from './lib/researchPack.js';
@@ -159,6 +160,14 @@ export default function App() {
     }
   }
 
+  function deleteUpload(id) {
+    const upload = uploads.find((u) => u.id === id);
+    setUploads((prev) => prev.filter((u) => u.id !== id));
+    deleteUploadRemote(id, upload?.imagePath).catch((err) =>
+      showToast(`Couldn't delete the upload: ${err.message}`)
+    );
+  }
+
   function goToTask(id) {
     setSelectedTaskId(id);
     setTab('Tasks');
@@ -245,7 +254,9 @@ export default function App() {
 
               {tab === 'Upload' && <UploadTab tasks={tasks} onAddUpload={addUpload} />}
 
-              {tab === 'Gallery' && <Gallery tasks={tasks} uploads={uploads} onGoToTask={goToTask} />}
+              {tab === 'Gallery' && (
+                <Gallery tasks={tasks} uploads={uploads} onGoToTask={goToTask} onDeleteUpload={deleteUpload} />
+              )}
             </>
           )}
         </main>

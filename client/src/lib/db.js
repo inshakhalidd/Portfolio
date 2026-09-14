@@ -90,6 +90,14 @@ export async function insertUpload(upload, file, userId) {
   return uploadFromRow(data);
 }
 
+export async function deleteUploadRemote(id, imagePath) {
+  const { error } = await supabase.from('uploads').delete().eq('id', id);
+  if (error) throw error;
+  if (imagePath) {
+    await supabase.storage.from('uploads').remove([imagePath]);
+  }
+}
+
 const signedUrlCache = new Map();
 
 export async function getSignedImageUrl(path) {

@@ -16,77 +16,116 @@ function fileToDataUrl(file) {
 
 export default function UploadTab({ tasks, onAddUpload }) {
   const [taskId, setTaskId] = useState(tasks[0]?.id ?? '');
-  const [file, setFile] = useState(null);
-  const [preview, setPreview] = useState(null);
+  const [entries, setEntries] = useState([]); // { file, preview }
   const [isLogo, setIsLogo] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState(null); // { done, total }
   const [error, setError] = useState(null);
-  const [result, setResult] = useState(null);
-  const [guideline, setGuideline] = useState(null);
+  const [results, setResults] = useState([]); // { filename, preview, critique?, guideline?, error? }
 
-  async function handleFile(f) {
-    setFile(f);
-    setResult(null);
-    setGuideline(null);
+  async function handleFiles(fileList) {
+    const files = Array.from(fileList || []);
+    setResults([]);
     setError(null);
-    setPreview(f ? await fileToDataUrl(f) : null);
+    if (!files.length) {
+      setEntries([]);
+      return;
+    }
+    const withPreviews = await Promise.all(
+      files.map(async (file) => ({ file, preview: await fileToDataUrl(file) }))
+    );
+    setEntries(withPreviews);
+  }
+
+  function removeEntry(index) {
+    setEntries((prev) => prev.filter((_, i) => i !== index));
   }
 
   async function submit(e) {
     e.preventDefault();
-    if (!file) return;
+    if (!entries.length) return;
     setLoading(true);
     setError(null);
-    setResult(null);
-    setGuideline(null);
-    try {
-      const task = tasks.find((t) => t.id === taskId);
-      const critique = await analyzeDesign(file, task);
-      const brand_guideline = isLogo ? await buildBrandGuideline(file, task) : null;
-      if (brand_guideline) critique.brand_guideline = brand_guideline;
+    setResults([]);
+    setProgress({ done: 0, total: entries.length });
 
-      await onAddUpload(
-        {
-          taskId: taskId || null,
-          mediaType: file.type,
-          filename: file.name,
-          tags: task?.tags ?? [],
-          category: task?.category ?? 'general',
-          critique,
-        },
-        file
-      );
-      setResult(critique);
-      setGuideline(brand_guideline);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
+    const task = tasks.find((t) => t.id === taskId);
+    const newResults = [];
+    for (const { file, preview } of entries) {
+      try {
+        const critique = await analyzeDesign(file, task);
+        const brand_guideline = isLogo ? await buildBrandGuideline(file, task) : null;
+        if (brand_guideline) critique.brand_guideline = brand_guideline;
+
+        await onAddUpload(
+          {
+            taskId: taskId || null,
+            mediaType: file.type,
+            filename: file.name,
+            tags: task?.tags ?? [],
+            category: task?.category ?? 'general',
+            critique,
+          },
+          file
+        );
+        newResults.push({ filename: file.name, preview, critique, guideline: brand_guideline });
+      } catch (err) {
+        newResults.push({ filename: file.name, preview, error: err.message });
+      }
+      setProgress((p) => ({ done: p.done + 1, total: p.total }));
     }
+
+    setResults(newResults);
+    setEntries([]);
+    setLoading(false);
+    setProgress(null);
   }
+
+  const brandName = tasks.find((t) => t.id === taskId)?.title;
 
   return (
     <div className="upload-tab animate-in">
       <form className="panel-card upload-form" onSubmit={submit}>
-        <label className="dropzone" style={preview ? { padding: 12 } : {}}>
+        <label className="dropzone" style={entries.length ? { padding: 12 } : {}}>
           <input
             type="file"
             accept="image/png,image/jpeg"
+            multiple
             style={{ display: 'none' }}
-            onChange={(e) => handleFile(e.target.files?.[0] ?? null)}
+            onChange={(e) => handleFiles(e.target.files)}
           />
-          {preview ? (
-            <div className="upload-preview">
-              <img src={preview} alt="preview" />
+          {entries.length ? (
+            <div className="upload-preview-grid">
+              {entries.map((entry, i) => (
+                <div className="upload-preview-thumb" key={i}>
+                  <img src={entry.preview} alt={entry.file.name} />
+                  <button
+                    type="button"
+                    className="upload-preview-remove"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      removeEntry(i);
+                    }}
+                    title="Remove"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
             </div>
           ) : (
             <div className="dropzone-empty">
-              <span className="dropzone-title">Drop a design or click to browse</span>
-              <span className="dropzone-sub mono">PNG · JPG</span>
+              <span className="dropzone-title">Drop designs or click to browse</span>
+              <span className="dropzone-sub mono">PNG · JPG · multiple files supported</span>
             </div>
           )}
         </label>
-        <span className="upload-filename">{file ? file.name : 'No file selected yet.'}</span>
+        <span className="upload-filename">
+          {entries.length
+            ? `${entries.length} file${entries.length > 1 ? 's' : ''} selected`
+            : 'No files selected yet.'}
+        </span>
 
         <label className="label">Belongs to task</label>
         <select className="select" value={taskId} onChange={(e) => setTaskId(e.target.value)}>
@@ -100,11 +139,15 @@ export default function UploadTab({ tasks, onAddUpload }) {
 
         <label className="checkbox-row">
           <input type="checkbox" checked={isLogo} onChange={(e) => setIsLogo(e.target.checked)} />
-          <span>This is a logo — also generate a starting brand guideline</span>
+          <span>These are logos — also generate a starting brand guideline for each</span>
         </label>
 
-        <button className="btn btn-primary" type="submit" disabled={!file || loading}>
-          {loading ? 'Analysing…' : 'Run critique'}
+        <button className="btn btn-primary" type="submit" disabled={!entries.length || loading}>
+          {loading
+            ? `Analysing ${progress ? `${progress.done}/${progress.total}` : '…'}`
+            : entries.length > 1
+              ? `Run critique on ${entries.length} files`
+              : 'Run critique'}
         </button>
         <span className="research-status">
           {error || 'Scored locally against the five criteria in your checklist — free, no API key.'}
@@ -112,19 +155,26 @@ export default function UploadTab({ tasks, onAddUpload }) {
       </form>
 
       <div className="upload-result">
-        {result ? (
-          <>
-            <CritiqueCard critique={result} />
-            {guideline && (
-              <BrandGuidelineCard
-                guideline={guideline}
-                brandName={tasks.find((t) => t.id === taskId)?.title || file?.name}
-                logoUrl={preview}
-              />
-            )}
-          </>
+        {results.length ? (
+          results.map((r, i) => (
+            <details className="upload-result-item" key={i} open={results.length === 1 || i === 0}>
+              <summary>
+                <span className="upload-result-filename">{r.filename}</span>
+                {r.critique && <span className="gallery-card-score mono">{r.critique.overall_score}/10</span>}
+                {r.error && <span className="hint-warning" style={{ margin: 0 }}>{r.error}</span>}
+              </summary>
+              {r.critique && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 14 }}>
+                  <CritiqueCard critique={r.critique} />
+                  {r.guideline && (
+                    <BrandGuidelineCard guideline={r.guideline} brandName={brandName || r.filename} logoUrl={r.preview} />
+                  )}
+                </div>
+              )}
+            </details>
+          ))
         ) : (
-          <div className="empty-state">Upload a design to get free, local structured feedback.</div>
+          <div className="empty-state">Upload one or more designs to get free, local structured feedback.</div>
         )}
       </div>
     </div>
