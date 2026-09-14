@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { CATEGORY_LABELS } from '../lib/taskTemplates.js';
 import { analyzeDesign } from '../lib/designAnalysis.js';
 import { buildBrandGuideline } from '../lib/brandGuideline.js';
+import { buildImageResearchPack } from '../lib/imageResearch.js';
 import CritiqueCard from './CritiqueCard.jsx';
 import BrandGuidelineCard from './BrandGuidelineCard.jsx';
 
@@ -20,6 +21,8 @@ export default function UploadTab({ tasks, onAddUpload, lastResearchPack }) {
   const [isLogo, setIsLogo] = useState(false);
   const [useResearchPack, setUseResearchPack] = useState(false);
   const [refNotes, setRefNotes] = useState('');
+  const [refImageFile, setRefImageFile] = useState(null);
+  const [refImagePreview, setRefImagePreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(null); // { done, total }
   const [error, setError] = useState(null);
@@ -43,6 +46,11 @@ export default function UploadTab({ tasks, onAddUpload, lastResearchPack }) {
     setEntries((prev) => prev.filter((_, i) => i !== index));
   }
 
+  async function handleRefImage(file) {
+    setRefImageFile(file || null);
+    setRefImagePreview(file ? await fileToDataUrl(file) : null);
+  }
+
   async function submit(e) {
     e.preventDefault();
     if (!entries.length) return;
@@ -53,10 +61,25 @@ export default function UploadTab({ tasks, onAddUpload, lastResearchPack }) {
 
     const task = tasks.find((t) => t.id === taskId);
     const trimmedNotes = refNotes.trim();
-    const extraRef =
-      trimmedNotes || (useResearchPack && lastResearchPack)
-        ? { notes: trimmedNotes, pack: useResearchPack ? lastResearchPack : null }
-        : undefined;
+
+    let attachedPack = useResearchPack && lastResearchPack ? lastResearchPack : null;
+    if (refImageFile) {
+      try {
+        const imagePack = await buildImageResearchPack(refImageFile, task?.category || 'general', task?.tags || []);
+        attachedPack = attachedPack
+          ? {
+              ...attachedPack,
+              keywords: [...new Set([...(attachedPack.keywords || []), ...(imagePack.keywords || [])])],
+              links: [...(attachedPack.links || []), ...(imagePack.links || [])],
+              palette: [...(attachedPack.palette || []), ...(imagePack.palette || [])],
+            }
+          : imagePack;
+      } catch {
+        // reference image couldn't be analysed — still proceed with notes/research pack if any
+      }
+    }
+
+    const extraRef = trimmedNotes || attachedPack ? { notes: trimmedNotes, pack: attachedPack } : undefined;
     const newResults = [];
     for (const { file, preview } of entries) {
       try {
@@ -173,6 +196,38 @@ export default function UploadTab({ tasks, onAddUpload, lastResearchPack }) {
             value={refNotes}
             onChange={(e) => setRefNotes(e.target.value)}
           />
+
+          <span className="label small">Or upload a reference image</span>
+          <label className="dropzone attach-ref-dropzone" style={refImagePreview ? { padding: 8 } : {}}>
+            <input
+              type="file"
+              accept="image/png,image/jpeg"
+              style={{ display: 'none' }}
+              onChange={(e) => handleRefImage(e.target.files?.[0] ?? null)}
+            />
+            {refImagePreview ? (
+              <div className="attach-ref-preview">
+                <img src={refImagePreview} alt="reference" />
+                <button
+                  type="button"
+                  className="upload-preview-remove"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleRefImage(null);
+                  }}
+                  title="Remove"
+                >
+                  ×
+                </button>
+              </div>
+            ) : (
+              <div className="dropzone-empty" style={{ padding: '18px 12px' }}>
+                <span className="dropzone-sub mono">PNG · JPG — colors &amp; style pulled from it automatically</span>
+              </div>
+            )}
+          </label>
+
           <span className="research-status" style={{ marginTop: 0 }}>
             Optional — when attached, it's factored into the Research &amp; reference score below,
             even without linking a task.
