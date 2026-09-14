@@ -47,8 +47,14 @@ export default function App() {
     return () => sub.subscription.unsubscribe();
   }, []);
 
+  const userId = session?.user?.id ?? null;
+
   useEffect(() => {
-    if (!session) return;
+    // Keyed on user id, not the session object — Supabase fires a fresh
+    // session (new object, same user) on token refresh, which happens
+    // whenever the browser tab regains focus. Re-running this on every
+    // such event reset the whole app back to "Loading your studio…".
+    if (!userId) return;
     setDataLoading(true);
     Promise.all([fetchTasks(), fetchUploads()])
       .then(([t, u]) => {
@@ -58,7 +64,7 @@ export default function App() {
       })
       .catch((err) => showToast(`Couldn't load your data: ${err.message}`))
       .finally(() => setDataLoading(false));
-  }, [session]);
+  }, [userId]);
 
   function showToast(msg) {
     setToast(msg);
