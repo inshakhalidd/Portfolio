@@ -7,7 +7,7 @@ const NAV = [
   { key: 'Gallery', label: 'Gallery' },
 ];
 
-export default function Sidebar({ active, onSelect, activeTaskCount, galleryCount, completionRate }) {
+export default function Sidebar({ active, onSelect, activeTaskCount, galleryCount, completionRate, onSignOut }) {
   const counts = {
     Tasks: activeTaskCount,
     Gallery: galleryCount,
@@ -52,6 +52,9 @@ export default function Sidebar({ active, onSelect, activeTaskCount, galleryCoun
             <div className="progress-fill" style={{ width: `${completionRate}%` }} />
           </div>
         </div>
+        <button type="button" className="panel-link-btn sidebar-signout" onClick={onSignOut}>
+          Sign out
+        </button>
       </div>
     </aside>
   );

@@ -80,7 +80,46 @@ server runs fine with no API key — only the "Boost with AI" buttons need one.
 9. **Light/dark theme** — toggle in the header. Not persisted on purpose —
    every reload starts fresh in dark mode.
 
-Data (tasks, subtasks, uploads) persists to `localStorage` in the browser.
+10. **Accounts** — the app is behind email/password sign-in (Supabase Auth).
+    Each person's tasks and uploads are private to them.
+
+Data (tasks, subtasks, uploads) is stored in a Supabase Postgres database and
+Supabase Storage — see **Database setup (Supabase)** below. Without Supabase
+configured, the app shows a "not configured" screen instead of the sign-in
+form; it does not fall back to local-only storage.
+
+## Database setup (Supabase)
+
+Studio Tracker uses Supabase for three things: **Auth** (email/password
+sign-up/sign-in), **Postgres** (tasks + uploads, with row-level security so
+each user only ever sees their own rows), and **Storage** (a private bucket
+for uploaded design files, also locked to the owning user).
+
+1. Go to [supabase.com/dashboard](https://supabase.com/dashboard) → **New project**
+   (the free tier is enough — no credit card required to create a project).
+2. Open the **SQL Editor** in your new project, paste the contents of
+   [`supabase/schema.sql`](supabase/schema.sql), and run it. This creates the
+   `tasks` and `uploads` tables with row-level security policies.
+3. Go to **Storage** → **New bucket**, name it `uploads`, and leave it
+   **private** (not public). The storage policies in `schema.sql` restrict
+   each user to their own `<user_id>/...` folder inside it.
+4. Go to **Project Settings → API** and copy the **Project URL** and the
+   **anon/public** key.
+5. In `client/`, copy `.env.example` to `.env` and fill in:
+   ```
+   VITE_SUPABASE_URL=https://your-project-ref.supabase.co
+   VITE_SUPABASE_ANON_KEY=your-anon-public-key
+   ```
+   (Never commit `.env` — it's already gitignored.) `VITE_API_URL` in the
+   same file is unrelated to this — it's only for the optional AI-boost
+   research backend described further down.
+6. Run `npm run dev` (or redeploy, if hosted) — you'll land on a sign-in
+   screen. Sign up with an email/password; by default Supabase requires
+   confirming via email before you can sign in.
+
+When deploying (e.g. to Vercel), set `VITE_SUPABASE_URL` and
+`VITE_SUPABASE_ANON_KEY` as environment variables on the hosting platform,
+the same way as `VITE_API_URL` below.
 
 ## Deploying it live (not as an Artifact)
 
@@ -125,11 +164,15 @@ Render for the optional AI-boost backend.
 
 1. Go to [vercel.com/new](https://vercel.com/new), sign in with GitHub, import `inshakhalidd/Portfolio`.
 2. Set **Root Directory** to `client`. Vercel auto-detects the Vite framework preset (build `npm run build`, output `dist`) — no other config needed.
-3. Click **Deploy**. You'll get a URL like `https://portfolio-xyz.vercel.app` in under a minute.
+3. Before the first deploy (or after, then redeploy), go to **Settings →
+   Environment Variables** and add `VITE_SUPABASE_URL` and
+   `VITE_SUPABASE_ANON_KEY` from the **Database setup (Supabase)** section
+   above — the app needs these to show anything but a "not configured" screen.
+4. Click **Deploy**. You'll get a URL like `https://portfolio-xyz.vercel.app` in under a minute.
 
-That alone gives you the full app — task checklists, the free research
+That gives you the full app — accounts, task checklists, the free research
 engine, the free category-aware rating, dashboard, gallery, theme toggle —
-with zero backend at all.
+with just the one Supabase project and no other backend.
 
 **2. Optional: Supabase for the AI boost** (skip this if you don't want it):
 

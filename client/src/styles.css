@@ -276,6 +276,40 @@ textarea:focus {
   color: var(--ink);
 }
 
+.sidebar-signout {
+  margin-top: 12px;
+  padding: 0 6px;
+  text-align: left;
+  color: var(--ink3);
+}
+.sidebar-signout:hover {
+  color: var(--ink);
+}
+
+.auth-shell {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  color: var(--ink);
+  padding: 20px;
+}
+.auth-card {
+  width: 100%;
+  max-width: 360px;
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+}
+.auth-card code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  background: var(--panel2);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
 .app-content {
   min-width: 0;
   display: flex;

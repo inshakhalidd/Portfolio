@@ -4,6 +4,7 @@ import { categorySoftVar, tintKeyForTags } from '../lib/categoryColors.js';
 import CategoryPill from './CategoryPill.jsx';
 import CritiqueCard from './CritiqueCard.jsx';
 import Modal from './Modal.jsx';
+import SignedImage from './SignedImage.jsx';
 
 export default function Gallery({ tasks, uploads, onGoToTask }) {
   const [query, setQuery] = useState('');
@@ -90,7 +91,7 @@ export default function Gallery({ tasks, uploads, onGoToTask }) {
             return (
               <div className="gallery-card" key={u.id} onClick={() => setOpenId(u.id)}>
                 <div className="gallery-thumb" style={{ background: categorySoftVar(tintKey) }}>
-                  <img src={u.dataUrl} alt={u.filename} />
+                  <SignedImage path={u.imagePath} alt={u.filename} />
                 </div>
                 <div className="gallery-card-body">
                   <span className="gallery-card-title">{task?.title || u.filename}</span>

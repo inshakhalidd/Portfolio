@@ -34,19 +34,20 @@ export default function UploadTab({ tasks, onAddUpload }) {
     setError(null);
     setResult(null);
     try {
-      const dataUrl = await fileToDataUrl(file);
       const task = tasks.find((t) => t.id === taskId);
       const critique = await analyzeDesign(file, task);
 
-      onAddUpload({
-        taskId: taskId || null,
-        dataUrl,
-        mediaType: file.type,
-        filename: file.name,
-        tags: task?.tags ?? [],
-        category: task?.category ?? 'general',
-        critique,
-      });
+      await onAddUpload(
+        {
+          taskId: taskId || null,
+          mediaType: file.type,
+          filename: file.name,
+          tags: task?.tags ?? [],
+          category: task?.category ?? 'general',
+          critique,
+        },
+        file
+      );
       setResult(critique);
     } catch (err) {
       setError(err.message);

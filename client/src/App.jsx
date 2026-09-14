@@ -1,7 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
-import { loadState, saveState } from './lib/storage.js';
+import { supabase, supabaseConfigured } from './lib/supabaseClient.js';
+import {
+  fetchTasks,
+  fetchUploads,
+  insertTask,
+  updateTaskRemote,
+  deleteTaskRemote,
+  insertUpload,
+} from './lib/db.js';
 import { detectCategory, generateSubtasks } from './lib/taskTemplates.js';
 import { mergePackIntoResearchData } from './lib/researchPack.js';
+import Auth from './components/Auth.jsx';
 import Sidebar from './components/Sidebar.jsx';
 import Home from './components/Home.jsx';
 import TopBar from './components/TopBar.jsx';
@@ -14,28 +23,46 @@ import ResearchTab from './components/ResearchTab.jsx';
 import UploadTab from './components/UploadTab.jsx';
 import Gallery from './components/Gallery.jsx';
 
-function taskId() {
-  return `t_${Date.now()}_${Math.floor(Math.random() * 1e6)}`;
-}
-
-function uploadId() {
-  return `u_${Date.now()}_${Math.floor(Math.random() * 1e6)}`;
-}
-
 export default function App() {
-  const persisted = loadState();
-  const [tasks, setTasks] = useState(persisted?.tasks ?? []);
-  const [uploads, setUploads] = useState(persisted?.uploads ?? []);
+  const [session, setSession] = useState(undefined); // undefined = not checked yet, null = signed out
+  const [tasks, setTasks] = useState([]);
+  const [uploads, setUploads] = useState([]);
+  const [dataLoading, setDataLoading] = useState(false);
+  const [toast, setToast] = useState(null);
   const [tab, setTab] = useState('Home');
-  const [selectedTaskId, setSelectedTaskId] = useState(persisted?.tasks?.[0]?.id ?? null);
+  const [selectedTaskId, setSelectedTaskId] = useState(null);
   const [taskSearch, setTaskSearch] = useState('');
   const [addTaskOpen, setAddTaskOpen] = useState(false);
   // Never persisted on purpose — every reload resets to dark, per spec.
   const [theme, setTheme] = useState('dark');
 
   useEffect(() => {
-    saveState({ tasks, uploads });
-  }, [tasks, uploads]);
+    if (!supabaseConfigured) {
+      setSession(null);
+      return;
+    }
+    supabase.auth.getSession().then(({ data }) => setSession(data.session));
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => setSession(s));
+    return () => sub.subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (!session) return;
+    setDataLoading(true);
+    Promise.all([fetchTasks(), fetchUploads()])
+      .then(([t, u]) => {
+        setTasks(t);
+        setUploads(u);
+        setSelectedTaskId((prev) => prev ?? t[0]?.id ?? null);
+      })
+      .catch((err) => showToast(`Couldn't load your data: ${err.message}`))
+      .finally(() => setDataLoading(false));
+  }, [session]);
+
+  function showToast(msg) {
+    setToast(msg);
+    setTimeout(() => setToast(null), 3500);
+  }
 
   const selectedTask = useMemo(
     () => tasks.find((t) => t.id === selectedTaskId) || null,
@@ -53,21 +80,31 @@ export default function App() {
   const doneSteps = tasks.reduce((sum, t) => sum + t.subtasks.filter((s) => s.done).length, 0);
   const completionRate = totalSteps ? Math.round((doneSteps / totalSteps) * 100) : 0;
 
+  async function persistNewTask(task) {
+    try {
+      const saved = await insertTask(task);
+      setTasks((prev) => [saved, ...prev]);
+      setSelectedTaskId(saved.id);
+      return saved;
+    } catch (err) {
+      showToast(`Couldn't save the task: ${err.message}`);
+      return null;
+    }
+  }
+
   function createTask(title, tags) {
     const category = detectCategory(title);
-    const task = {
-      id: taskId(),
+    persistNewTask({
       title,
       category,
       tags,
       subtasks: generateSubtasks(category),
-      createdAt: new Date().toISOString(),
-      completedAt: null,
-    };
-    setTasks((prev) => [task, ...prev]);
-    setSelectedTaskId(task.id);
-    setTab('Tasks');
-    setAddTaskOpen(false);
+    }).then((saved) => {
+      if (saved) {
+        setTab('Tasks');
+        setAddTaskOpen(false);
+      }
+    });
   }
 
   function updateTask(id, patch) {
@@ -77,6 +114,9 @@ export default function App() {
         const next = { ...t, ...(typeof patch === 'function' ? patch(t) : patch) };
         const allDone = next.subtasks.length > 0 && next.subtasks.every((s) => s.done);
         next.completedAt = allDone ? next.completedAt || new Date().toISOString() : null;
+        updateTaskRemote(id, { subtasks: next.subtasks, completedAt: next.completedAt }).catch((err) =>
+          showToast(`Couldn't save your change: ${err.message}`)
+        );
         return next;
       })
     );
@@ -91,17 +131,7 @@ export default function App() {
         data: mergePackIntoResearchData(subtasks[researchIdx].data, pack),
       };
     }
-    const task = {
-      id: taskId(),
-      title,
-      category,
-      tags,
-      subtasks,
-      createdAt: new Date().toISOString(),
-      completedAt: null,
-    };
-    setTasks((prev) => [task, ...prev]);
-    setSelectedTaskId(task.id);
+    persistNewTask({ title, category, tags, subtasks });
   }
 
   function attachResearchToTask(id, pack) {
@@ -116,17 +146,30 @@ export default function App() {
   function deleteTask(id) {
     setTasks((prev) => prev.filter((t) => t.id !== id));
     if (selectedTaskId === id) setSelectedTaskId(null);
+    deleteTaskRemote(id).catch((err) => showToast(`Couldn't delete the task: ${err.message}`));
   }
 
-  function addUpload(upload) {
-    const record = { id: uploadId(), createdAt: new Date().toISOString(), ...upload };
-    setUploads((prev) => [record, ...prev]);
-    return record.id;
+  async function addUpload(upload, file) {
+    try {
+      const saved = await insertUpload(upload, file, session.user.id);
+      setUploads((prev) => [saved, ...prev]);
+      return saved.id;
+    } catch (err) {
+      showToast(`Couldn't save the upload: ${err.message}`);
+      return null;
+    }
   }
 
   function goToTask(id) {
     setSelectedTaskId(id);
     setTab('Tasks');
+  }
+
+  if (session === undefined) {
+    return null; // checking auth state
+  }
+  if (!session) {
+    return <Auth />;
   }
 
   return (
@@ -137,6 +180,7 @@ export default function App() {
         activeTaskCount={activeTaskCount}
         galleryCount={uploads.length}
         completionRate={completionRate}
+        onSignOut={() => supabase.auth.signOut()}
       />
 
       <div className="app-content">
@@ -148,57 +192,63 @@ export default function App() {
         />
 
         <main className="main">
-          {tab === 'Home' && (
-            <Home
-              tasks={tasks}
-              uploads={uploads}
-              onOpenTask={goToTask}
-              onGoTasks={() => setTab('Tasks')}
-              onNewMoodboard={() => setTab('Research')}
-              onAddTask={() => setAddTaskOpen(true)}
-              onGoUpload={() => setTab('Upload')}
-            />
-          )}
-
-          {tab === 'Tasks' && (
-            <div className="tasks-layout animate-in">
-              <div className="panel-card task-sidebar-panel">
-                <TaskList
-                  tasks={visibleTasks}
-                  selectedId={selectedTaskId}
-                  onSelect={setSelectedTaskId}
-                  onDelete={deleteTask}
-                  search={taskSearch}
-                  onSearchChange={setTaskSearch}
+          {dataLoading ? (
+            <div className="empty-state">Loading your studio…</div>
+          ) : (
+            <>
+              {tab === 'Home' && (
+                <Home
+                  tasks={tasks}
+                  uploads={uploads}
+                  onOpenTask={goToTask}
+                  onGoTasks={() => setTab('Tasks')}
+                  onNewMoodboard={() => setTab('Research')}
+                  onAddTask={() => setAddTaskOpen(true)}
+                  onGoUpload={() => setTab('Upload')}
                 />
-              </div>
-              <div className="panel-card task-detail-panel">
-                {selectedTask ? (
-                  <TaskDetail task={selectedTask} onUpdate={updateTask} />
-                ) : (
-                  <div className="empty-state">
-                    {tasks.length === 0
-                      ? 'Add a task to generate its checklist.'
-                      : 'Select a task to see its checklist.'}
+              )}
+
+              {tab === 'Tasks' && (
+                <div className="tasks-layout animate-in">
+                  <div className="panel-card task-sidebar-panel">
+                    <TaskList
+                      tasks={visibleTasks}
+                      selectedId={selectedTaskId}
+                      onSelect={setSelectedTaskId}
+                      onDelete={deleteTask}
+                      search={taskSearch}
+                      onSearchChange={setTaskSearch}
+                    />
                   </div>
-                )}
-              </div>
-            </div>
+                  <div className="panel-card task-detail-panel">
+                    {selectedTask ? (
+                      <TaskDetail task={selectedTask} onUpdate={updateTask} />
+                    ) : (
+                      <div className="empty-state">
+                        {tasks.length === 0
+                          ? 'Add a task to generate its checklist.'
+                          : 'Select a task to see its checklist.'}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {tab === 'Research' && (
+                <ResearchTab
+                  tasks={tasks}
+                  onCreateTask={createTaskFromResearch}
+                  onAttachToTask={attachResearchToTask}
+                />
+              )}
+
+              {tab === 'Dashboard' && <Dashboard tasks={tasks} uploads={uploads} />}
+
+              {tab === 'Upload' && <UploadTab tasks={tasks} onAddUpload={addUpload} />}
+
+              {tab === 'Gallery' && <Gallery tasks={tasks} uploads={uploads} onGoToTask={goToTask} />}
+            </>
           )}
-
-          {tab === 'Research' && (
-            <ResearchTab
-              tasks={tasks}
-              onCreateTask={createTaskFromResearch}
-              onAttachToTask={attachResearchToTask}
-            />
-          )}
-
-          {tab === 'Dashboard' && <Dashboard tasks={tasks} uploads={uploads} />}
-
-          {tab === 'Upload' && <UploadTab tasks={tasks} onAddUpload={addUpload} />}
-
-          {tab === 'Gallery' && <Gallery tasks={tasks} uploads={uploads} onGoToTask={goToTask} />}
         </main>
       </div>
 
@@ -207,6 +257,8 @@ export default function App() {
           <TaskInput onCreate={createTask} />
         </Modal>
       )}
+
+      {toast && <div className="toast">{toast}</div>}
     </div>
   );
 }
