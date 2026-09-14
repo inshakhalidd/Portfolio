@@ -63,42 +63,53 @@ function whitespaceData() {
 
 const TEMPLATES = {
   [CATEGORIES.PORTFOLIO]: [
-    ['Curate past work', 'standard', 'Pick the pieces that best represent your range and skill level — quality over quantity.'],
-    ['Select brand identity pieces', 'standard', 'Choose 1-3 brand identity projects that show your range with logo, color, and type systems.'],
-    ['Select intern work samples', 'standard', 'Pull in intern/agency work you can showcase, with permission to display it if needed.'],
-    ['Research: portfolio layout inspiration', 'research', 'Look at how other designers sequence and present their portfolios — grid, scroll, case-study structure.'],
-    ['Write case study write-ups', 'standard', 'For each project, write a short brief/process/result summary so viewers understand the work, not just see it.'],
-    ['Whitespace check: layout & sequencing', 'whitespace', 'Confirm spacing between pieces and sections reads cleanly and the sequencing has a clear flow.'],
-    ['Finalize layout / sequencing', 'standard', 'Lock the final order and layout of pieces before publishing or exporting.'],
+    ['Curate past work', 'standard', 'Pick your best pieces. Quality over quantity.'],
+    ['Select brand identity pieces', 'standard', 'Choose 1-3 branding projects that show off logo and color work.'],
+    ['Select intern work samples', 'standard', 'Add any intern or agency work you’re allowed to show.'],
+    ['Research: portfolio layout inspiration', 'research', 'Look at how other designers lay out their portfolios.'],
+    ['Write case study write-ups', 'standard', 'Write a short blurb for each project — what it was, what you did.'],
+    ['Whitespace check: layout & sequencing', 'whitespace', 'Check the spacing between pieces looks clean and the order flows.'],
+    ['Finalize layout / sequencing', 'standard', 'Lock in the final order and layout.'],
   ],
   [CATEGORIES.SOCIAL_POST]: [
-    ['Research: references & trends', 'research', 'Look at what’s currently performing well for similar brands/content on this platform.'],
-    ['Build moodboard', 'standard', 'Pull together visual references — colors, imagery, type styles — to guide the post’s look.'],
-    ['Lock color codes', 'standard', 'Pick the exact hex/brand colors for this post and stick to them.'],
-    ['Choose typography', 'standard', 'Decide which fonts/weights you’ll use for headline and body text.'],
-    ['Layout draft', 'standard', 'Rough out the composition — where text, imagery, and logo sit.'],
-    ['Whitespace check', 'whitespace', 'Confirm margins and spacing don’t feel cramped or unbalanced on the final canvas size.'],
-    ['Final export', 'standard', 'Export at the right dimensions/format for the platform you’re posting to.'],
+    ['Research: references & trends', 'research', 'See what’s trending for similar posts right now.'],
+    ['Build moodboard', 'standard', 'Collect colors, images, and styles you like for this post.'],
+    ['Lock color codes', 'standard', 'Pick the exact colors and stick to them.'],
+    ['Choose typography', 'standard', 'Pick which fonts you’ll use for the text.'],
+    ['Layout draft', 'standard', 'Rough out where the text, image, and logo go.'],
+    ['Whitespace check', 'whitespace', 'Check the spacing doesn’t feel cramped.'],
+    ['Final export', 'standard', 'Save/export at the right size for the platform.'],
   ],
   [CATEGORIES.BRAND_IDENTITY]: [
-    ['Research: brand & competitor references', 'research', 'Study the client’s competitors and category to find what visual space is open for this brand.'],
-    ['Build moodboard', 'standard', 'Collect visual direction — color, texture, imagery, type — that captures the intended brand feel.'],
-    ['Logo exploration', 'standard', 'Sketch/draft multiple logo directions before narrowing down.'],
-    ['Lock color codes', 'standard', 'Finalize the brand’s exact color palette with hex/CMYK values.'],
-    ['Typography system', 'standard', 'Choose primary/secondary typefaces and define how they’re used (headers, body, etc).'],
-    ['Whitespace check', 'whitespace', 'Confirm logo clear-space and layout spacing follow consistent rules across applications.'],
-    ['Style guide assembly', 'standard', 'Document the logo usage, colors, type, and spacing rules into one reference file.'],
-    ['Final export', 'standard', 'Export all final brand assets (logo files, color swatches, style guide) in the formats the client needs.'],
+    ['Research: brand & competitor references', 'research', 'Look at competitors to see what visual space is open.'],
+    ['Build moodboard', 'standard', 'Collect colors, textures, and images that match the brand feel.'],
+    ['Logo exploration', 'standard', 'Sketch a few logo ideas before picking one.'],
+    ['Lock color codes', 'standard', 'Finalize the exact brand colors (hex/CMYK).'],
+    ['Typography system', 'standard', 'Pick the main and secondary fonts, and when to use each.'],
+    ['Whitespace check', 'whitespace', 'Check logo spacing and layout stay consistent everywhere.'],
+    ['Style guide assembly', 'standard', 'Put the logo, colors, and fonts into one reference doc.'],
+    ['Final export', 'standard', 'Export all final brand files for the client.'],
   ],
   [CATEGORIES.GENERAL]: [
-    ['Research: references & inspiration', 'research', 'Gather references and inspiration before you start designing.'],
-    ['Concept sketch', 'standard', 'Rough out one or more initial directions before committing to a final layout.'],
-    ['Layout draft', 'standard', 'Build out the working draft of the design based on your concept.'],
-    ['Whitespace check', 'whitespace', 'Confirm margins, spacing, and grouping feel balanced before finalizing.'],
-    ['Final export', 'standard', 'Export the finished file in the format the client/project needs.'],
-    ['Review', 'standard', 'Do a final pass — check for typos, alignment issues, and overall consistency.'],
+    ['Research: references & inspiration', 'research', 'Collect a few references before you start designing.'],
+    ['Concept sketch', 'standard', 'Rough out one or two ideas before committing to one.'],
+    ['Layout draft', 'standard', 'Build a working draft based on your concept.'],
+    ['Whitespace check', 'whitespace', 'Check the spacing feels balanced, not cramped.'],
+    ['Final export', 'standard', 'Export the finished file.'],
+    ['Review', 'standard', 'Do one last check for typos and alignment issues.'],
   ],
 };
+
+const TITLE_DESCRIPTIONS = Object.fromEntries(
+  Object.values(TEMPLATES)
+    .flat()
+    .map(([title, , description]) => [title, description])
+    .filter(([, description]) => description)
+);
+
+export function descriptionFor(title, type) {
+  return TITLE_DESCRIPTIONS[title] || SUBTASK_TYPE_DESCRIPTIONS[type] || '';
+}
 
 export function generateSubtasks(category) {
   const template = TEMPLATES[category] || TEMPLATES[CATEGORIES.GENERAL];
@@ -111,7 +122,7 @@ export function generateSubtasks(category) {
 }
 
 export function newSubtask(title, type = 'standard') {
-  const sub = baseSubtask(title, type);
+  const sub = baseSubtask(title, type, TITLE_DESCRIPTIONS[title]);
   if (type === 'research') sub.data = researchData();
   if (type === 'whitespace') sub.data = whitespaceData();
   return sub;
@@ -125,14 +136,14 @@ export const CATEGORY_LABELS = {
 };
 
 export const CATEGORY_DESCRIPTIONS = {
-  [CATEGORIES.PORTFOLIO]: 'Curating and sequencing past work into a cohesive showcase — case studies, layout, and storytelling.',
-  [CATEGORIES.SOCIAL_POST]: 'A single post or short series for a client’s social feed — fast-turnaround, on-brand, trend-aware.',
-  [CATEGORIES.BRAND_IDENTITY]: 'Building or extending a brand system — logo, color, typography, and the rules that hold it together.',
-  [CATEGORIES.GENERAL]: 'Anything that doesn’t fit the other categories yet — a plain research → draft → export flow.',
+  [CATEGORIES.PORTFOLIO]: 'Putting your past work together into one showcase.',
+  [CATEGORIES.SOCIAL_POST]: 'A single post (or short set of posts) for a client’s social feed.',
+  [CATEGORIES.BRAND_IDENTITY]: 'Building a brand’s look — logo, colors, and fonts.',
+  [CATEGORIES.GENERAL]: 'Anything else — a simple research, draft, export flow.',
 };
 
 export const SUBTASK_TYPE_DESCRIPTIONS = {
-  standard: 'A regular step — check it off once you’ve done it. No extra info required.',
-  research: 'Gather references before you design: add links, notes, or reference images. Can’t be checked off empty.',
-  whitespace: 'A spacing pass — confirm margins, breathing room, and grouping are working before you move on.',
+  standard: 'A regular step. Just check it off once it’s done.',
+  research: 'Add a link, note, or image before you can check this off.',
+  whitespace: 'Confirm the spacing looks right before you can check this off.',
 };

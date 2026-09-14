@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import ResearchPanel from './ResearchPanel.jsx';
 import WhitespacePanel from './WhitespacePanel.jsx';
-import { SUBTASK_TYPE_DESCRIPTIONS } from '../lib/taskTemplates.js';
+import { descriptionFor } from '../lib/taskTemplates.js';
 
 function canComplete(subtask) {
   if (subtask.type === 'research') {
@@ -109,7 +109,7 @@ export default function ChecklistItem({
       </div>
 
       {showInfo && (
-        <div className="step-info">{subtask.description || SUBTASK_TYPE_DESCRIPTIONS[subtask.type]}</div>
+        <div className="step-info">{subtask.description || descriptionFor(subtask.title, subtask.type)}</div>
       )}
 
       {blocked && !subtask.done && !locked && (
